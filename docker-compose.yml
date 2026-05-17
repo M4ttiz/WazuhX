@@ -1,0 +1,33 @@
+services:
+  wazuhx-backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    environment:
+      - WAZUH_API_URL=${WAZUH_API_URL:-https://wazuh-manager:55000}
+      - WAZUH_USER=${WAZUH_USER}
+      - WAZUH_PASSWORD=${WAZUH_PASSWORD}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - NODE_ENV=${NODE_ENV:-production}
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-60}
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - USE_MOCK=${USE_MOCK:-false}
+    networks:
+      - wazuh-net
+    restart: unless-stopped
+
+  wazuhx-frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - wazuhx-backend
+    networks:
+      - wazuh-net
+    restart: unless-stopped
+
+networks:
+  wazuh-net:
+    external: true

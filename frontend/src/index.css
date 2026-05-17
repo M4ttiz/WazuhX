@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-text font-display antialiased;
+  }
+
+  .light body,
+  html.light body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  html.light .bg-bg {
+    @apply bg-gray-50;
+  }
+
+  html.light .bg-surface {
+    @apply bg-white border-gray-200;
+  }
+
+  html.light .border-border {
+    @apply border-gray-200;
+  }
+
+  html.light .text-muted {
+    @apply text-gray-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-lg p-4 transition-shadow duration-300 hover:shadow-glow;
+  }
+
+  .btn-primary {
+    @apply bg-accent/20 text-accent border border-accent/40 px-4 py-2 rounded font-semibold
+      hover:bg-accent/30 transition-all duration-300 disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply text-muted hover:text-accent px-3 py-2 rounded transition-colors duration-300;
+  }
+
+  .input {
+    @apply bg-bg border border-border rounded px-3 py-2 text-text font-mono text-sm
+      focus:outline-none focus:border-accent transition-colors duration-300;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-border/50 rounded;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .blink-critical {
+    animation: blink 1s ease-in-out infinite;
+  }
+}
