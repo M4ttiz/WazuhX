@@ -1,0 +1,2 @@
+# WazuhX
+alternative dashboard wazuh
