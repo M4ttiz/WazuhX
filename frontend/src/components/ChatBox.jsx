@@ -25,9 +25,9 @@ export default function ChatBox({ messages, onSend, loading, briefing }) {
   return (
     <div className="flex flex-col h-full">
       {briefing && (
-        <div className="card mb-4 bg-accent/5 border-accent/30">
-          <h3 className="text-accent font-bold mb-2">Executive Briefing</h3>
-          <p className="text-sm whitespace-pre-wrap">{briefing}</p>
+        <div className="card mb-4 border-l-[3px] border-l-accent">
+          <p className="card-title">Executive Briefing</p>
+          <p className="text-sm text-secondary whitespace-pre-wrap leading-relaxed">{briefing}</p>
         </div>
       )}
 
@@ -38,7 +38,7 @@ export default function ChatBox({ messages, onSend, loading, briefing }) {
             type="button"
             onClick={() => onSend(p)}
             disabled={loading}
-            className="text-xs btn-ghost border border-border rounded-full px-3 py-1 hover:border-accent"
+            className="btn-secondary text-xs py-1.5 px-3"
           >
             {p}
           </button>
@@ -49,18 +49,16 @@ export default function ChatBox({ messages, onSend, loading, briefing }) {
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`p-3 rounded-lg max-w-[85%] text-sm ${
+            className={`p-3 rounded-md text-sm max-w-[85%] ${
               m.role === 'user'
-                ? 'ml-auto bg-accent/20 border border-accent/30'
-                : 'bg-surface border border-border'
+                ? 'ml-auto bg-accent-light border border-accent/20 text-primary'
+                : 'bg-surface border border-border text-secondary'
             }`}
           >
             {m.content}
           </div>
         ))}
-        {loading && (
-          <p className="text-muted text-sm animate-pulse">AI sta analizzando...</p>
-        )}
+        {loading && <p className="text-muted text-sm">Analisi in corso...</p>}
         <div ref={bottomRef} />
       </div>
 
@@ -69,7 +67,7 @@ export default function ChatBox({ messages, onSend, loading, briefing }) {
           className="input flex-1"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Scrivi una domanda in italiano..."
+          placeholder="Scrivi una domanda..."
           disabled={loading}
         />
         <button type="submit" className="btn-primary" disabled={loading}>

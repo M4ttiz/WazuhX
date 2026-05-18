@@ -6,52 +6,52 @@ export default function AlertTable({ alerts = [], expandable = true }) {
   const [expanded, setExpanded] = useState(null);
 
   if (!alerts.length) {
-    return <p className="text-muted text-center py-8">Nessun alert trovato</p>;
+    return <p className="text-muted text-sm text-center py-8">Nessun alert trovato</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="table-wrap">
+      <table>
         <thead>
-          <tr className="border-b border-border text-muted text-left">
-            <th className="py-2 px-3">Timestamp</th>
-            <th className="py-2 px-3">Severità</th>
-            <th className="py-2 px-3">Agente</th>
-            <th className="py-2 px-3">Regola</th>
-            <th className="py-2 px-3">Descrizione</th>
-            <th className="py-2 px-3">MITRE</th>
+          <tr>
+            <th>Timestamp</th>
+            <th>Severità</th>
+            <th>Agente</th>
+            <th>Regola</th>
+            <th>Descrizione</th>
+            <th>MITRE</th>
           </tr>
         </thead>
         <tbody>
           {alerts.map((a) => (
             <Fragment key={a.id}>
               <tr
-                className="border-b border-border/50 hover:bg-border/20 cursor-pointer transition-colors duration-300"
+                className={expandable ? 'cursor-pointer' : ''}
                 onClick={() => expandable && setExpanded(expanded === a.id ? null : a.id)}
               >
-                <td className="py-2 px-3 font-mono text-xs">{formatDate(a.timestamp)}</td>
-                <td className="py-2 px-3">
+                <td className="font-mono text-xs text-secondary">{formatDate(a.timestamp)}</td>
+                <td>
                   <SeverityBadge level={a.severity} label={a.severityLabel} />
                 </td>
-                <td className="py-2 px-3">{a.agentName}</td>
-                <td className="py-2 px-3 font-mono">{a.ruleId}</td>
-                <td className="py-2 px-3 max-w-xs truncate">{a.description}</td>
-                <td className="py-2 px-3 font-mono text-xs text-accent">{a.mitreTechnique}</td>
+                <td>{a.agentName}</td>
+                <td className="font-mono text-xs">{a.ruleId}</td>
+                <td className="max-w-xs truncate text-secondary">{a.description}</td>
+                <td className="font-mono text-xs text-info">{a.mitreTechnique}</td>
               </tr>
               {expandable && expanded === a.id && (
-                <tr className="bg-bg">
-                  <td colSpan={6} className="p-4">
-                    <div className="grid md:grid-cols-2 gap-4 text-xs font-mono">
+                <tr>
+                  <td colSpan={6} className="!h-auto py-4 bg-surface">
+                    <div className="grid md:grid-cols-2 gap-4 text-xs">
                       <div>
-                        <p className="text-muted mb-1">Log raw</p>
-                        <pre className="bg-surface p-3 rounded overflow-x-auto text-[10px]">
+                        <p className="text-muted mb-1 uppercase text-[11px] font-semibold">Log raw</p>
+                        <pre className="bg-base border border-border rounded-md p-3 overflow-x-auto text-[11px] font-mono">
                           {a.rawLog}
                         </pre>
                       </div>
                       <div>
-                        <p className="text-muted mb-1">Suggerimento risposta</p>
-                        <p className="text-safe">{a.responseSuggestion}</p>
-                        <p className="text-muted mt-2">
+                        <p className="text-muted mb-1 uppercase text-[11px] font-semibold">Suggerimento</p>
+                        <p className="text-success text-sm">{a.responseSuggestion}</p>
+                        <p className="text-muted mt-2 text-xs">
                           {a.mitreTactic} · {a.mitreTechniqueName}
                         </p>
                       </div>

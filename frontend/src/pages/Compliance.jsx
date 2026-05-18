@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
 } from 'recharts';
+import { chartTooltipStyle } from '../utils/chartTheme';
 
 const BENCHMARKS = [
   { id: 'cis', label: 'CIS' },
@@ -40,14 +41,14 @@ export default function Compliance() {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-wrap gap-4 items-center">
+      <div className="card flex flex-wrap gap-3 items-center">
         {BENCHMARKS.map((b) => (
           <button
             key={b.id}
             type="button"
             onClick={() => setBenchmark(b.id)}
-            className={`px-4 py-2 rounded font-semibold transition-all duration-300 ${
-              benchmark === b.id ? 'bg-accent/20 text-accent border border-accent/40' : 'btn-ghost border border-border'
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+              benchmark === b.id ? 'tab-active' : 'btn-secondary'
             }`}
           >
             {b.label}
@@ -59,16 +60,16 @@ export default function Compliance() {
       </div>
 
       <div className="card">
-        <h2 className="font-bold text-accent mb-4">Confronto compliance</h2>
+        <p className="card-title">Confronto compliance</p>
         {loading ? (
           <div className="skeleton h-64" />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="#1a2540" />
-              <PolarAngleAxis dataKey="agent" tick={{ fill: '#4a5568', fontSize: 10 }} />
-              <Radar dataKey="score" stroke="#00ff88" fill="#00ff88" fillOpacity={0.4} />
-              <Tooltip contentStyle={{ background: '#0d1220', border: '1px solid #1a2540' }} />
+              <PolarGrid stroke="var(--border-subtle)" />
+              <PolarAngleAxis dataKey="agent" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+              <Radar dataKey="score" stroke="#16a34a" fill="#16a34a" fillOpacity={0.25} />
+              <Tooltip contentStyle={chartTooltipStyle} />
             </RadarChart>
           </ResponsiveContainer>
         )}
@@ -77,32 +78,34 @@ export default function Compliance() {
       {data?.map((agent) => (
         <div key={agent.agentId} className="card">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold">{agent.agentName}</h3>
-            <span className="font-mono text-2xl text-safe">{agent.score}%</span>
+            <h3 className="font-semibold text-primary">{agent.agentName}</h3>
+            <span className="text-2xl font-bold text-success">{agent.score}%</span>
           </div>
-          <div className="h-2 bg-border rounded overflow-hidden mb-4">
-            <div className="h-full bg-safe transition-all duration-300" style={{ width: `${agent.score}%` }} />
+          <div className="h-2 bg-border rounded-full overflow-hidden mb-4">
+            <div className="h-full bg-success transition-all duration-150" style={{ width: `${agent.score}%` }} />
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-muted border-b border-border">
-                <th className="text-left py-2">ID</th>
-                <th className="text-left">Descrizione</th>
-                <th>Risultato</th>
-                <th>Remediation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agent.checks?.slice(0, 10).map((c) => (
-                <tr key={c.id} className="border-b border-border/30">
-                  <td className="py-2 font-mono">{c.id}</td>
-                  <td className="py-2">{c.description}</td>
-                  <td className={c.result === 'passed' ? 'text-safe' : 'text-critical'}>{c.result}</td>
-                  <td className="text-muted text-xs">{c.remediation || '—'}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Descrizione</th>
+                  <th>Risultato</th>
+                  <th>Remediation</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {agent.checks?.slice(0, 10).map((c) => (
+                  <tr key={c.id}>
+                    <td className="font-mono text-xs">{c.id}</td>
+                    <td>{c.description}</td>
+                    <td className={c.result === 'passed' ? 'text-success' : 'text-danger'}>{c.result}</td>
+                    <td className="text-muted text-xs">{c.remediation || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>

@@ -4,55 +4,52 @@ import { formatDate } from '../utils/formatters';
 export default function FIM() {
   const { data: events, loading } = useWazuh('/fim');
 
+  if (loading) {
+    return <div className="card skeleton h-64" />;
+  }
+
   return (
-    <div className="card overflow-x-auto">
-      {loading ? (
-        <div className="skeleton h-64" />
-      ) : (
-        <table className="w-full text-sm font-mono">
+    <div className="card p-0 overflow-hidden">
+      <div className="table-wrap border-0 rounded-none">
+        <table>
           <thead>
-            <tr className="text-muted border-b border-border text-left">
-              <th className="py-2 px-3">Timestamp</th>
-              <th className="py-2 px-3">Agente</th>
-              <th className="py-2 px-3">Path</th>
-              <th className="py-2 px-3">Tipo</th>
-              <th className="py-2 px-3">Size</th>
-              <th className="py-2 px-3">Permessi</th>
-              <th className="py-2 px-3">Utente</th>
-              <th className="py-2 px-3">Hash</th>
+            <tr>
+              <th>Timestamp</th>
+              <th>Agente</th>
+              <th>Path</th>
+              <th>Tipo</th>
+              <th>Size</th>
+              <th>Permessi</th>
+              <th>Utente</th>
+              <th>Hash</th>
             </tr>
           </thead>
           <tbody>
             {events?.map((e) => (
-              <tr
-                key={e.id}
-                className={`border-b border-border/30 ${e.critical ? 'bg-critical/10 text-critical' : ''}`}
-              >
-                <td className="py-2 px-3">{formatDate(e.timestamp)}</td>
-                <td className="py-2 px-3">{e.agentName}</td>
-                <td className="py-2 px-3 max-w-xs truncate">{e.path}</td>
-                <td className="py-2 px-3">
+              <tr key={e.id} className={e.critical ? 'bg-[rgba(220,38,38,0.08)]' : ''}>
+                <td className="text-xs text-secondary">{formatDate(e.timestamp)}</td>
+                <td>{e.agentName}</td>
+                <td className="font-mono text-xs max-w-xs truncate">{e.path}</td>
+                <td>
                   <span
                     className={
                       e.type === 'deleted'
-                        ? 'text-critical'
+                        ? 'text-danger'
                         : e.type === 'added'
-                          ? 'text-safe'
+                          ? 'text-success'
                           : 'text-warning'
                     }
                   >
                     {e.type}
                   </span>
                 </td>
-                <td className="py-2 px-3">{e.size}</td>
-                <td className="py-2 px-3">{e.permissions || '—'}</td>
-                <td className="py-2 px-3">{e.user}</td>
-                <td className="py-2 px-3 text-[10px]">
+                <td className="text-xs">{e.size}</td>
+                <td className="font-mono text-xs">{e.permissions || '—'}</td>
+                <td>{e.user}</td>
+                <td className="font-mono text-[11px] text-muted">
                   {e.type === 'modified' && (
                     <>
-                      MD5: {e.md5Before} → {e.md5After}
-                      <br />
-                      SHA256: {e.sha256Before?.slice(0, 12)}...
+                      {e.md5Before?.slice(0, 8)} → {e.md5After?.slice(0, 8)}
                     </>
                   )}
                 </td>
@@ -60,7 +57,7 @@ export default function FIM() {
             ))}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   );
 }

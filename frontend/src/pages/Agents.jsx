@@ -10,7 +10,7 @@ export default function Agents() {
     <div className="space-y-6">
       <div className="card flex flex-wrap gap-4">
         <select
-          className="input"
+          className="select"
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
         >

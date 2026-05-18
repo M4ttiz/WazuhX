@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import { useDataSource } from './context/DataSourceContext';
 import Dashboard from './pages/Dashboard';
 import Agents from './pages/Agents';
 import AgentDetail from './pages/AgentDetail';
@@ -16,6 +17,7 @@ import Settings from './pages/Settings';
 export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const { isMock } = useDataSource();
 
   const handleRefresh = () => {
     setRefreshKey((k) => k + 1);
@@ -23,11 +25,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-base">
       <Sidebar />
-      <div className="ml-[240px] transition-all duration-300">
+      <div className="ml-[220px] min-h-screen flex flex-col">
+        {isMock && (
+          <div className="banner-warning">
+            Wazuh non raggiungibile — modalità demo
+          </div>
+        )}
         <Header onRefresh={handleRefresh} lastUpdate={lastUpdate} />
-        <main className="p-6">
+        <main className="flex-1 p-6">
           <Routes>
             <Route path="/" element={<Dashboard key={refreshKey} />} />
             <Route path="/agents" element={<Agents key={refreshKey} />} />

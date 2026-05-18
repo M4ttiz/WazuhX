@@ -2,37 +2,48 @@ import { Link } from 'react-router-dom';
 import { formatRelative, isStale } from '../utils/formatters';
 
 const STATUS = {
-  active: { color: 'text-safe', dot: '🟢', label: 'Active' },
-  disconnected: { color: 'text-critical', dot: '🔴', label: 'Disconnected' },
-  never_connected: { color: 'text-muted', dot: '⚫', label: 'Never connected' },
+  active: { dot: 'bg-success', label: 'Active' },
+  disconnected: { dot: 'bg-danger', label: 'Disconnected' },
+  never_connected: { dot: 'bg-muted', label: 'Never connected' },
 };
 
+function StatusDot({ status }) {
+  const st = STATUS[status] || STATUS.never_connected;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-secondary">
+      <span className={`w-2 h-2 rounded-full ${st.dot}`} />
+      {st.label}
+    </span>
+  );
+}
+
 export default function AgentCard({ agent }) {
-  const st = STATUS[agent.status] || STATUS.never_connected;
   const stale = isStale(agent.lastKeepAlive);
 
   return (
-    <Link to={`/agents/${agent.id}`} className="card block hover:border-accent/50">
+    <Link
+      to={`/agents/${agent.id}`}
+      className="card block hover:bg-hover transition-colors duration-150"
+    >
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="font-bold text-lg">{agent.name}</h3>
-          <p className="text-muted font-mono text-sm">{agent.ip}</p>
+          <h3 className="font-semibold text-sm text-primary">{agent.name}</h3>
+          <p className="text-secondary text-xs font-mono mt-0.5">{agent.ip}</p>
         </div>
-        <span className={st.color}>
-          {st.dot} {st.label}
-        </span>
+        <StatusDot status={agent.status} />
       </div>
-      <p className="text-sm text-muted mb-2">{agent.os}</p>
-      <div className="flex justify-between text-xs font-mono">
+      <p className="text-xs text-secondary mb-3">{agent.os}</p>
+      <div className="flex justify-between text-xs">
         <span className={stale ? 'text-warning' : 'text-muted'}>
           {formatRelative(agent.lastKeepAlive)}
         </span>
-        <span>
-          <span className="text-critical">{agent.criticalCount}</span> crit · {agent.alertCount} alert
+        <span className="text-secondary">
+          <span className="text-danger font-medium">{agent.criticalCount}</span> crit ·{' '}
+          {agent.alertCount} alert
         </span>
       </div>
       {agent.compromised && (
-        <p className="mt-2 text-critical text-xs font-bold blink-critical">⚠ POSSIBILE COMPROMISSIONE</p>
+        <p className="mt-2 text-danger text-xs font-semibold">Possibile compromissione</p>
       )}
     </Link>
   );

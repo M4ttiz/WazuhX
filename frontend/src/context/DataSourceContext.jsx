@@ -17,11 +17,6 @@ export function DataSourceProvider({ children }) {
   return (
     <DataSourceContext.Provider value={{ isMock }}>
       {children}
-      {isMock && (
-        <div className="bg-warning/20 border-b border-warning text-warning text-center py-2 text-sm font-mono z-50">
-          ⚠️ Wazuh non raggiungibile — modalità demo
-        </div>
-      )}
     </DataSourceContext.Provider>
   );
 }

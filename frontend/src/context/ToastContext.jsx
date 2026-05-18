@@ -11,6 +11,12 @@ export function ToastProvider({ children }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
   }, []);
 
+  const styles = {
+    error: 'bg-[rgba(220,38,38,0.12)] border-danger/30 text-[#f87171]',
+    success: 'bg-[rgba(22,163,74,0.12)] border-success/30 text-[#4ade80]',
+    info: 'bg-surface border-border text-primary',
+  };
+
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
@@ -18,13 +24,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`px-4 py-3 rounded-lg border font-mono text-sm shadow-lg transition-all duration-300 ${
-              t.type === 'error'
-                ? 'bg-critical/20 border-critical text-critical'
-                : t.type === 'success'
-                  ? 'bg-safe/20 border-safe text-safe'
-                  : 'bg-surface border-border text-text'
-            }`}
+            className={`px-4 py-3 rounded-md border text-sm shadow-md transition-opacity duration-150 ${styles[t.type] || styles.info}`}
           >
             {t.message}
           </div>

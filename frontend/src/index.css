@@ -2,62 +2,250 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-base: #0f1117;
+  --bg-surface: #1a1d27;
+  --bg-card: #1e2130;
+  --bg-hover: #252839;
+  --border: #2a2d3e;
+  --border-subtle: #1f2235;
+  --text-primary: #e2e8f0;
+  --text-secondary: #8892a4;
+  --text-muted: #4a5568;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: rgba(37, 99, 235, 0.12);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #0891b2;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --font: 'Inter', system-ui, sans-serif;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+html.light {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent-light: rgba(37, 99, 235, 0.08);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
 @layer base {
   body {
-    @apply bg-bg text-text font-display antialiased;
-  }
-
-  .light body,
-  html.light body {
-    @apply bg-gray-50 text-gray-900;
-  }
-
-  html.light .bg-bg {
-    @apply bg-gray-50;
-  }
-
-  html.light .bg-surface {
-    @apply bg-white border-gray-200;
-  }
-
-  html.light .border-border {
-    @apply border-gray-200;
-  }
-
-  html.light .text-muted {
-    @apply text-gray-500;
+    font-family: var(--font);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface border border-border rounded-lg p-4 transition-shadow duration-300 hover:shadow-glow;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: background 150ms ease;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
   }
 
   .btn-primary {
-    @apply bg-accent/20 text-accent border border-accent/40 px-4 py-2 rounded font-semibold
-      hover:bg-accent/30 transition-all duration-300 disabled:opacity-50;
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 150ms ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 150ms ease, color 150ms ease;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .btn-danger {
+    background: rgba(220, 38, 38, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 150ms ease;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(220, 38, 38, 0.18);
   }
 
   .btn-ghost {
-    @apply text-muted hover:text-accent px-3 py-2 rounded transition-colors duration-300;
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 150ms ease, color 150ms ease;
   }
 
-  .input {
-    @apply bg-bg border border-border rounded px-3 py-2 text-text font-mono text-sm
-      focus:outline-none focus:border-accent transition-colors duration-300;
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .input,
+  .select {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .input:focus,
+  .select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  .table-wrap {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .table-wrap thead {
+    background: var(--bg-surface);
+  }
+
+  .table-wrap th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-wrap td {
+    padding: 0 12px;
+    height: 40px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+  }
+
+  .table-wrap tbody tr {
+    transition: background 150ms ease;
+  }
+
+  .table-wrap tbody tr:hover {
+    background: var(--bg-hover);
+  }
+
+  .table-wrap tbody tr:last-child td {
+    border-bottom: none;
   }
 
   .skeleton {
-    @apply animate-pulse bg-border/50 rounded;
+    background: var(--border-subtle);
+    border-radius: var(--radius-sm);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
   }
 
-  @keyframes blink {
+  @keyframes skeleton-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
   }
 
-  .blink-critical {
-    animation: blink 1s ease-in-out infinite;
+  .font-mono {
+    font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  }
+
+  .nav-link-active {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+
+  .tab-active {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .banner-critical {
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    color: #f87171;
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .banner-warning {
+    background: rgba(217, 119, 6, 0.1);
+    border-bottom: 1px solid rgba(217, 119, 6, 0.25);
+    color: var(--warning);
+    text-align: center;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
   }
 }

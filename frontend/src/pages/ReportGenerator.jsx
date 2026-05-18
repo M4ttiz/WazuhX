@@ -52,14 +52,14 @@ export default function ReportGenerator() {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl">
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Configurazione report</h2>
+        <p className="card-title mb-0">Configurazione report</p>
 
         <label className="block">
-          <span className="text-muted text-sm">Periodo</span>
+          <span className="text-secondary text-xs">Periodo</span>
           <select
-            className="input w-full mt-1"
+            className="select w-full mt-1"
             value={form.period}
             onChange={(e) => setForm({ ...form, period: e.target.value })}
           >
@@ -71,25 +71,25 @@ export default function ReportGenerator() {
         </label>
 
         <div>
-          <span className="text-muted text-sm">Sezioni</span>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <span className="text-secondary text-xs">Sezioni</span>
+          <div className="flex flex-wrap gap-3 mt-2">
             {SECTIONS.map((s) => (
-              <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+              <label key={s.id} className="flex items-center gap-2 cursor-pointer text-sm text-secondary">
                 <input
                   type="checkbox"
                   checked={form.sections.includes(s.id)}
                   onChange={() => toggleSection(s.id)}
                 />
-                <span className="text-sm">{s.label}</span>
+                {s.label}
               </label>
             ))}
           </div>
         </div>
 
         <label className="block">
-          <span className="text-muted text-sm">Agenti</span>
+          <span className="text-secondary text-xs">Agenti</span>
           <select
-            className="input w-full mt-1"
+            className="select w-full mt-1"
             value={form.agents}
             onChange={(e) => setForm({ ...form, agents: e.target.value })}
           >
@@ -99,9 +99,9 @@ export default function ReportGenerator() {
         </label>
 
         {form.agents === 'selected' && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {agents?.map((a) => (
-              <label key={a.id} className="flex items-center gap-1 text-sm">
+              <label key={a.id} className="flex items-center gap-1.5 text-sm text-secondary">
                 <input
                   type="checkbox"
                   checked={form.selectedAgents.includes(a.id)}
@@ -122,9 +122,9 @@ export default function ReportGenerator() {
 
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-muted text-sm">Lingua</span>
+            <span className="text-secondary text-xs">Lingua</span>
             <select
-              className="input w-full mt-1"
+              className="select w-full mt-1"
               value={form.language}
               onChange={(e) => setForm({ ...form, language: e.target.value })}
             >
@@ -133,9 +133,9 @@ export default function ReportGenerator() {
             </select>
           </label>
           <label className="block">
-            <span className="text-muted text-sm">Formato</span>
+            <span className="text-secondary text-xs">Formato</span>
             <select
-              className="input w-full mt-1"
+              className="select w-full mt-1"
               value={form.format}
               onChange={(e) => setForm({ ...form, format: e.target.value })}
             >

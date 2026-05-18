@@ -53,16 +53,17 @@ export default function Alerts() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-accent">
-          <span className="text-2xl font-bold">{liveCount}</span> eventi/min
+        <p className="text-secondary text-sm">
+          <span className="text-2xl font-bold text-primary">{liveCount}</span>
+          {' '}eventi/min
         </p>
         <button type="button" className="btn-primary" onClick={handleExport}>
           Export CSV
         </button>
       </div>
 
-      <div className="card flex flex-wrap gap-4">
-        <label className="text-sm text-muted">
+      <div className="card flex flex-wrap gap-4 items-end">
+        <label className="text-xs text-secondary">
           Severità min: {filters.severityMin}
           <input
             type="range"
@@ -70,10 +71,10 @@ export default function Alerts() {
             max="15"
             value={filters.severityMin}
             onChange={(e) => setFilters({ ...filters, severityMin: +e.target.value })}
-            className="block w-32"
+            className="block w-32 mt-1"
           />
         </label>
-        <label className="text-sm text-muted">
+        <label className="text-xs text-secondary">
           Severità max: {filters.severityMax}
           <input
             type="range"
@@ -81,7 +82,7 @@ export default function Alerts() {
             max="15"
             value={filters.severityMax}
             onChange={(e) => setFilters({ ...filters, severityMax: +e.target.value })}
-            className="block w-32"
+            className="block w-32 mt-1"
           />
         </label>
         <input
@@ -91,7 +92,7 @@ export default function Alerts() {
           onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
         />
         <select
-          className="input"
+          className="select"
           value={filters.limit}
           onChange={(e) => setFilters({ ...filters, limit: +e.target.value, page: 1 })}
         >
@@ -101,34 +102,34 @@ export default function Alerts() {
         </select>
       </div>
 
-      <div className="card">
+      <div className="card p-0 overflow-hidden">
         {loading ? (
-          <div className="skeleton h-64" />
+          <div className="skeleton h-64 m-5" />
         ) : (
           <AlertTable alerts={data?.data || []} />
         )}
       </div>
 
       {data?.pagination && (
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center items-center gap-4">
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-secondary text-sm"
             disabled={filters.page <= 1}
             onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
           >
-            ← Prec
+            Prec
           </button>
-          <span className="font-mono text-muted">
+          <span className="text-muted text-sm">
             {data.pagination.page} / {data.pagination.totalPages}
           </span>
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-secondary text-sm"
             disabled={filters.page >= data.pagination.totalPages}
             onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
           >
-            Succ →
+            Succ
           </button>
         </div>
       )}

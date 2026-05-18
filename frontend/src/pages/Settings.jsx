@@ -50,27 +50,27 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="max-w-xl space-y-4">
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Connessione Wazuh</h2>
-        <p className="text-muted text-sm">
+        <p className="card-title mb-0">Connessione Wazuh</p>
+        <p className="text-secondary text-sm">
           Le credenziali si configurano via variabili d&apos;ambiente (WAZUH_API_URL, WAZUH_USER, WAZUH_PASSWORD).
         </p>
         <button type="button" className="btn-primary" onClick={handleTestConnection}>
           Test Connessione
         </button>
         {testResult && (
-          <p className={testResult.success ? 'text-safe' : 'text-critical'}>
-            {testResult.success ? '✅' : '❌'} {testResult.message}
+          <p className={`text-sm ${testResult.success ? 'text-success' : 'text-danger'}`}>
+            {testResult.success ? 'Connesso' : 'Errore'}: {testResult.message}
             {testResult.agentCount !== undefined && ` (${testResult.agentCount} agenti)`}
           </p>
         )}
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Auto-refresh</h2>
+        <p className="card-title mb-0">Auto-refresh</p>
         <label className="block">
-          <span className="text-muted text-sm">Dashboard (ms)</span>
+          <span className="text-secondary text-xs">Dashboard (ms)</span>
           <input
             type="number"
             className="input w-full mt-1"
@@ -82,8 +82,8 @@ export default function Settings() {
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Gemini API</h2>
-        <p className="text-muted text-sm">
+        <p className="card-title mb-0">Gemini API</p>
+        <p className="text-secondary text-sm">
           Configura GEMINI_API_KEY nel file .env del backend.
         </p>
         <a
@@ -92,23 +92,23 @@ export default function Settings() {
           rel="noreferrer"
           className="text-accent hover:underline text-sm"
         >
-          Ottieni API key gratuita →
+          Ottieni API key gratuita
         </a>
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Aspetto</h2>
-        <div className="flex gap-4">
+        <p className="card-title mb-0">Aspetto</p>
+        <div className="flex gap-2">
           <button
             type="button"
-            className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-accent/20 text-accent' : 'btn-ghost'}`}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${theme === 'dark' ? 'tab-active' : 'btn-secondary'}`}
             onClick={() => setTheme('dark')}
           >
             Dark
           </button>
           <button
             type="button"
-            className={`px-4 py-2 rounded ${theme === 'light' ? 'bg-accent/20 text-accent' : 'btn-ghost'}`}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${theme === 'light' ? 'tab-active' : 'btn-secondary'}`}
             onClick={() => setTheme('light')}
           >
             Light
@@ -117,7 +117,7 @@ export default function Settings() {
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Notifiche browser</h2>
+        <p className="card-title mb-0">Notifiche browser</p>
         <button type="button" className="btn-primary" onClick={requestNotifications}>
           {notifications ? 'Notifiche attive' : 'Abilita notifiche'}
         </button>
@@ -125,7 +125,7 @@ export default function Settings() {
       </div>
 
       <div className="card space-y-4">
-        <h2 className="font-bold text-accent">Wazuh Dashboard originale</h2>
+        <p className="card-title mb-0">Wazuh Dashboard originale</p>
         <input
           className="input w-full"
           value={wazuhHost}
@@ -141,7 +141,7 @@ export default function Settings() {
           rel="noreferrer"
           className="btn-primary inline-block text-center"
         >
-          Apri Wazuh Dashboard originale
+          Apri Wazuh Dashboard
         </a>
       </div>
     </div>
