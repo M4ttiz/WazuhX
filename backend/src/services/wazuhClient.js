@@ -83,8 +83,7 @@ client.interceptors.response.use(
         original.headers.Authorization = `Bearer ${t}`;
         return client(original);
       } catch {
-        useMock = true;
-        connectionStatus = 'mock';
+        // auth refresh failed — reject original error
       }
     }
     return Promise.reject(error);
@@ -101,11 +100,6 @@ async function wazuhRequest(path, params = {}) {
     const msg = err.response?.data?.message || err.message;
     lastError = `[${path}] ${status || 'network'}: ${msg}`;
     console.warn('Wazuh API:', lastError);
-
-    if (status === 401 || err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      useMock = true;
-      connectionStatus = 'mock';
-    }
     return null;
   }
 }
@@ -150,7 +144,15 @@ function normalizeAgent(a) {
 }
 
 function normalizeVulnerability(v, agentId, agentName) {
-  const severity = (v.severity || v.cvss3_score >= 9 ? 'critical' : v.cvss3_score >= 7 ? 'high' : 'medium').toLowerCase();
+  const severity = v.severity
+    ? v.severity.toLowerCase()
+    : v.cvss3_score >= 9
+      ? 'critical'
+      : v.cvss3_score >= 7
+        ? 'high'
+        : v.cvss3_score >= 4
+          ? 'medium'
+          : 'low';
   return {
     id: `${v.cve || v.vulnerability_id}-${agentId}`,
     cve: v.cve || v.vulnerability_id || 'UNKNOWN',
@@ -159,7 +161,7 @@ function normalizeVulnerability(v, agentId, agentName) {
     package: v.package || v.name || 'unknown',
     version: v.version || 'N/A',
     fixVersion: v.fix_version || v.patch || null,
-    cvss,
+    cvss: v.cvss3_score || v.cvss2_score || v.cvss || 0,
     severity,
     hasFix: Boolean(v.fix_version || v.patch),
     detectedAt: v.detected_at || v.published || new Date().toISOString(),
@@ -230,7 +232,7 @@ async function getAgentsFromWazuh(filters = {}) {
 
   const raw = await wazuhRequest('/agents', params);
   if (!raw?.affected_items) {
-    return { data: mock.filterAgents(filters), source: 'mock' };
+    return { data: [], source: 'wazuh' };
   }
 
   let items = raw.affected_items.map(normalizeAgent);
@@ -283,7 +285,7 @@ async function getAgentStats(id) {
   const osInfo = await wazuhRequest(`/syscollector/${id}/os`);
 
   if (!hardware?.affected_items?.[0] && !osInfo?.affected_items?.[0]) {
-    return { data: mock.getAgentStats(id), source: 'mock' };
+    return { data: {}, source: 'wazuh' };
   }
 
   const hw = hardware?.affected_items?.[0] || {};
@@ -318,7 +320,7 @@ async function getAgentProcesses(id) {
   if (!raw?.affected_items) {
     const fallback = await wazuhRequest(`/syscollector/${id}/processes`, { limit: 10 });
     if (!fallback?.affected_items) {
-      return { data: mock.getAgentProcesses(id), source: 'mock' };
+      return { data: [], source: 'wazuh' };
     }
     const procs = fallback.affected_items
       .map((p) => ({
@@ -433,7 +435,7 @@ async function getCompliance(benchmark = 'cis') {
   }
 
   if (results.length === 0) {
-    return { data: mock.generateCompliance(benchmark), source: 'mock' };
+    return { data: [], source: 'wazuh' };
   }
 
   return { data: results, source: 'wazuh' };
