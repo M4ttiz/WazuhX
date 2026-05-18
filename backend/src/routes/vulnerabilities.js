@@ -7,10 +7,12 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const key = getCacheKey('vulnerabilities', req.query);
-    const result = await withCache(req, res, key, liveTtl, () => wazuh.getVulnerabilities());
-    res.set('X-Data-Source', result.source || 'mock');
-    res.json({ data: result.data, stats: result.stats });
+    const agentId = req.query.agentId;
+    const key = getCacheKey('vulnerabilities', { agentId: agentId || '' });
+    const result = await withCache(req, res, key, liveTtl, () =>
+      wazuh.getVulnerabilities(agentId)
+    );
+    sendData(res, result);
   } catch (err) {
     next(err);
   }

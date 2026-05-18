@@ -7,7 +7,10 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const filters = { agentId: req.query.agentId };
+    const filters = {};
+    if (req.query.agentId) {
+      filters.agentId = req.query.agentId;
+    }
     const key = getCacheKey('fim', filters);
     const result = await withCache(req, res, key, liveTtl, () => wazuh.getFim(filters));
     sendData(res, result);

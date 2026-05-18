@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const wazuh = require('./services/wazuhClient');
 const { apiLimiter } = require('./middleware/rateLimit');
-const { getCacheStats } = require('./middleware/cache');
+const { getCacheStats, clearCache } = require('./middleware/cache');
 
 const agentsRouter = require('./routes/agents');
 const alertsRouter = require('./routes/alerts');
@@ -40,6 +40,11 @@ app.get('/api/health', (req, res) => {
 app.post('/api/settings/test-connection', async (req, res) => {
   const result = await wazuh.testConnection();
   res.json(result);
+});
+
+app.delete('/api/cache', (_req, res) => {
+  clearCache();
+  res.json({ success: true, message: 'Cache cleared' });
 });
 
 app.use('/api/agents', agentsRouter);

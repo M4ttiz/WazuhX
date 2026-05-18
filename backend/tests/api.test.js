@@ -87,6 +87,18 @@ describe('WazuhX API', () => {
     expect(res.body.reply).toBeDefined();
   });
 
+  it('GET /api/alerts/live-count returns 0 without indexer', async () => {
+    const res = await request(app).get('/api/alerts/live-count');
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(0);
+  });
+
+  it('DELETE /api/cache clears cache', async () => {
+    const res = await request(app).delete('/api/cache');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
   it('POST /api/reports/generate returns HTML when no puppeteer', async () => {
     const res = await request(app)
       .post('/api/reports/generate')

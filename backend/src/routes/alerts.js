@@ -2,7 +2,6 @@ const express = require('express');
 const wazuh = require('../services/wazuhClient');
 const { sendData } = require('../utils/response');
 const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
-const mock = require('../mock/mockData');
 
 const router = express.Router();
 
@@ -37,10 +36,8 @@ router.get('/overview', async (req, res, next) => {
   }
 });
 
-router.get('/live-count', (req, res) => {
-  const oneMinAgo = new Date(Date.now() - 60000).toISOString();
-  const count = mock.alerts.filter((a) => a.timestamp >= oneMinAgo).length;
-  res.json({ count });
+router.get('/live-count', (_req, res) => {
+  res.json({ count: 0 });
 });
 
 module.exports = router;
