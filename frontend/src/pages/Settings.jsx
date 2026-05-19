@@ -54,7 +54,8 @@ export default function Settings() {
       <div className="card space-y-4">
         <p className="card-title mb-0">Connessione Wazuh</p>
         <p className="text-secondary text-sm">
-          Le credenziali si configurano via variabili d&apos;ambiente (WAZUH_API_URL, WAZUH_USER, WAZUH_PASSWORD).
+          Manager API: WAZUH_API_URL, WAZUH_USER, WAZUH_PASSWORD.
+          Per alert, grafici e CVE (Wazuh 4.8+): WAZUH_INDEXER_URL, WAZUH_INDEXER_USER, WAZUH_INDEXER_PASSWORD.
         </p>
         <button type="button" className="btn-primary" onClick={handleTestConnection}>
           Test Connessione

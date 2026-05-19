@@ -12,6 +12,9 @@ services:
       - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-60}
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - USE_MOCK=${USE_MOCK:-false}
+      - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL:-}
+      - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER:-}
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-}
     networks:
       - wazuh-net
     restart: unless-stopped

@@ -41,6 +41,13 @@ export default function Compliance() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-primary">Compliance (SCA)</h1>
+        <p className="text-secondary text-sm mt-1">
+          Security Configuration Assessment — benchmark CIS, PCI-DSS, GDPR e altri.
+        </p>
+      </div>
+
       <div className="card flex flex-wrap gap-3 items-center">
         {BENCHMARKS.map((b) => (
           <button
@@ -74,6 +81,17 @@ export default function Compliance() {
           </ResponsiveContainer>
         )}
       </div>
+
+      {!loading && (!data || data.length === 0) && (
+        <div className="card text-center py-12 text-secondary">
+          <p className="font-medium text-primary mb-2">Nessun dato SCA disponibile</p>
+          <p className="text-sm max-w-lg mx-auto">
+            Verifica che la Security Configuration Assessment sia attiva sugli agenti e che WazuhX
+            raggiunga l&apos;API manager (porta 55000). Se vedi gli agenti ma non i punteggi,
+            prova <code className="text-xs">DELETE /api/cache</code> dopo un aggiornamento.
+          </p>
+        </div>
+      )}
 
       {data?.map((agent) => (
         <div key={agent.agentId} className="card">

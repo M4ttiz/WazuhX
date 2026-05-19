@@ -1,5 +1,6 @@
 const express = require('express');
 const wazuh = require('../services/wazuhClient');
+const indexer = require('../services/wazuhIndexer');
 const { sendData } = require('../utils/response');
 const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
 
@@ -36,8 +37,16 @@ router.get('/overview', async (req, res, next) => {
   }
 });
 
-router.get('/live-count', (_req, res) => {
-  res.json({ count: 0 });
+router.get('/live-count', async (_req, res, next) => {
+  try {
+    if (indexer.isConfigured()) {
+      const count = await indexer.getLiveAlertCount();
+      if (count !== null) return res.json({ count });
+    }
+    res.json({ count: 0 });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

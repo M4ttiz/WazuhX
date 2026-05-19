@@ -31,6 +31,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     wazuh: status.wazuh,
+    indexer: status.indexer,
     useMock: status.useMock,
     cache: getCacheStats(),
     timestamp: new Date().toISOString(),

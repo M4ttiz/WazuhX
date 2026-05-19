@@ -1,5 +1,21 @@
 const axios = require('axios');
 const mock = require('../mock/mockData');
+const indexer = require('./wazuhIndexer');
+
+const BENCHMARK_KEYWORDS = {
+  cis: ['cis'],
+  pci: ['pci'],
+  gdpr: ['gdpr'],
+  hipaa: ['hipaa'],
+  nist: ['nist'],
+};
+
+function formatAgentId(id) {
+  const stripped = String(id).replace(/^0+/, '') || '0';
+  const num = parseInt(stripped, 10);
+  if (Number.isNaN(num)) return String(id).padStart(3, '0');
+  return String(num).padStart(3, '0');
+}
 
 let token = null;
 let tokenExpiry = null;
@@ -108,7 +124,7 @@ async function getActiveAgents() {
   const raw = await wazuhRequest('/agents', { status: 'active', limit: 500 });
   if (!raw?.affected_items?.length) return [];
   return raw.affected_items.map((a) => ({
-    id: String(a.id),
+    id: formatAgentId(a.id),
     name: a.name || `agent-${a.id}`,
   }));
 }
@@ -189,17 +205,27 @@ function normalizeFimEvent(item, agentId, agentName) {
   };
 }
 
-function normalizeScaPolicy(policy, agentId, agentName, benchmark) {
-  const total = policy.total_checks || policy.pass || 0;
-  const passed = policy.pass || 0;
-  const score = total > 0 ? Math.round((passed / total) * 100) : policy.score || 0;
-  const checks = (policy.checks || []).slice(0, 20).map((c, i) => ({
-    id: c.id || `${policy.policy_id}-${i}`,
-    description: c.description || c.title || `Check ${i + 1}`,
-    result: c.result === 'passed' ? 'passed' : 'failed',
+function normalizeScaCheck(c, policyId, index) {
+  const result = (c.result || '').toLowerCase();
+  return {
+    id: c.id || `${policyId}-${index}`,
+    description: c.description || c.title || `Check ${index + 1}`,
+    result: result === 'passed' ? 'passed' : 'failed',
     remediation: c.remediation || null,
-    reference: c.reason || policy.name || benchmark,
-  }));
+    reference: c.reason || null,
+  };
+}
+
+function normalizeScaPolicy(policy, agentId, agentName, benchmark, checks = []) {
+  const total = policy.total_checks || 0;
+  const passed = policy.pass ?? 0;
+  const score =
+    policy.score != null
+      ? Math.round(Number(policy.score))
+      : total > 0
+        ? Math.round((passed / total) * 100)
+        : 0;
+  const normalizedChecks = checks.slice(0, 20).map((c, i) => normalizeScaCheck(c, policy.policy_id, i));
 
   return {
     agentId: String(agentId),
@@ -208,9 +234,20 @@ function normalizeScaPolicy(policy, agentId, agentName, benchmark) {
     benchmarkName: policy.name || benchmark.toUpperCase(),
     score,
     passed,
-    total: total || policy.total_checks || 100,
-    checks: checks.length ? checks : undefined,
+    failed: policy.fail ?? 0,
+    total: total || passed + (policy.fail ?? 0),
+    checks: normalizedChecks.length ? normalizedChecks : undefined,
   };
+}
+
+function pickScaPolicy(policies, benchmark) {
+  const needles = BENCHMARK_KEYWORDS[benchmark.toLowerCase()] || [benchmark.toLowerCase()];
+  return (
+    policies.find((p) => {
+      const hay = `${p.name || ''} ${p.policy_id || ''}`.toLowerCase();
+      return needles.some((n) => hay.includes(n));
+    }) || policies[0]
+  );
 }
 
 function computeVulnStats(vulnerabilities) {
@@ -252,15 +289,16 @@ async function getAgent(id) {
     return { data: agent, source: 'mock' };
   }
 
-  const raw = await wazuhRequest('/agents', { agents_list: id, limit: 1 });
+  const raw = await wazuhRequest('/agents', { agents_list: formatAgentId(id), limit: 1 });
   const item = raw?.affected_items?.[0];
   if (!item) {
     return { data: null, source: 'wazuh' };
   }
 
   const base = normalizeAgent(item);
-  const osInfo = await wazuhRequest(`/syscollector/${id}/os`);
-  const hardware = await wazuhRequest(`/syscollector/${id}/hardware`);
+  const agentRef = formatAgentId(id);
+  const osInfo = await wazuhRequest(`/syscollector/${agentRef}/os`);
+  const hardware = await wazuhRequest(`/syscollector/${agentRef}/hardware`);
 
   if (osInfo?.affected_items?.[0]) {
     const os = osInfo.affected_items[0];
@@ -281,8 +319,9 @@ async function getAgent(id) {
 async function getAgentStats(id) {
   if (useMock) return { data: mock.getAgentStats(id), source: 'mock' };
 
-  const hardware = await wazuhRequest(`/syscollector/${id}/hardware`);
-  const osInfo = await wazuhRequest(`/syscollector/${id}/os`);
+  const agentRef = formatAgentId(id);
+  const hardware = await wazuhRequest(`/syscollector/${agentRef}/hardware`);
+  const osInfo = await wazuhRequest(`/syscollector/${agentRef}/os`);
 
   if (!hardware?.affected_items?.[0] && !osInfo?.affected_items?.[0]) {
     return { data: {}, source: 'wazuh' };
@@ -312,13 +351,14 @@ async function getAgentStats(id) {
 async function getAgentProcesses(id) {
   if (useMock) return { data: mock.getAgentProcesses(id), source: 'mock' };
 
-  const raw = await wazuhRequest(`/syscollector/${id}/processes`, {
+  const agentRef = formatAgentId(id);
+  const raw = await wazuhRequest(`/syscollector/${agentRef}/processes`, {
     limit: 10,
     sort: '-cpu_usage_percent',
   });
 
   if (!raw?.affected_items) {
-    const fallback = await wazuhRequest(`/syscollector/${id}/processes`, { limit: 10 });
+    const fallback = await wazuhRequest(`/syscollector/${agentRef}/processes`, { limit: 10 });
     if (!fallback?.affected_items) {
       return { data: [], source: 'wazuh' };
     }
@@ -357,6 +397,13 @@ async function getAlerts(filters = {}) {
   const page = parseInt(filters.page, 10) || 1;
   const limit = parseInt(filters.limit, 10) || 25;
 
+  if (indexer.isConfigured()) {
+    const fromIndexer = await indexer.getAlerts(filters);
+    if (fromIndexer) {
+      return { ...fromIndexer, source: 'wazuh' };
+    }
+  }
+
   return {
     data: [],
     pagination: { page, limit, total: 0, totalPages: 0 },
@@ -377,9 +424,16 @@ async function getVulnerabilities(agentId) {
     : await getActiveAgents();
 
   for (const agent of agents) {
-    const raw = await wazuhRequest(`/vulnerability/${agent.id}`);
+    const raw = await wazuhRequest(`/vulnerability/${formatAgentId(agent.id)}`);
     const items = raw?.affected_items || [];
     items.forEach((v) => allVulns.push(normalizeVulnerability(v, agent.id, agent.name)));
+  }
+
+  if (allVulns.length === 0 && indexer.isConfigured()) {
+    const fromIndexer = await indexer.getVulnerabilities(agentId);
+    if (fromIndexer?.length) {
+      return { data: fromIndexer, stats: computeVulnStats(fromIndexer), source: 'wazuh' };
+    }
   }
 
   if (allVulns.length === 0 && agents.length === 0) {
@@ -402,9 +456,16 @@ async function getFim(filters = {}) {
     : await getActiveAgents();
 
   for (const agent of agents) {
-    const raw = await wazuhRequest(`/syscheck/${agent.id}`);
+    const raw = await wazuhRequest(`/syscheck/${formatAgentId(agent.id)}`);
     const items = raw?.affected_items || raw?.items || [];
     items.forEach((item) => allEvents.push(normalizeFimEvent(item, agent.id, agent.name)));
+  }
+
+  if (allEvents.length === 0 && indexer.isConfigured()) {
+    const fromIndexer = await indexer.getFimEvents(filters.agentId);
+    if (fromIndexer?.length) {
+      return { data: fromIndexer, source: 'wazuh' };
+    }
   }
 
   if (allEvents.length === 0) {
@@ -423,15 +484,21 @@ async function getCompliance(benchmark = 'cis') {
   const results = [];
 
   for (const agent of agents) {
-    const raw = await wazuhRequest(`/sca/${agent.id}`);
+    const agentRef = formatAgentId(agent.id);
+    const raw = await wazuhRequest(`/sca/${agentRef}`);
     const policies = raw?.affected_items || [];
     if (policies.length === 0) continue;
 
-    const policy = policies.find((p) =>
-      (p.name || '').toLowerCase().includes(benchmark.toLowerCase())
-    ) || policies[0];
+    const policy = pickScaPolicy(policies, benchmark);
+    let checks = [];
+    if (policy.policy_id) {
+      const checksRaw = await wazuhRequest(`/sca/${agentRef}/checks/${policy.policy_id}`, {
+        limit: 50,
+      });
+      checks = checksRaw?.affected_items || [];
+    }
 
-    results.push(normalizeScaPolicy(policy, agent.id, agent.name, benchmark));
+    results.push(normalizeScaPolicy(policy, agent.id, agent.name, benchmark, checks));
   }
 
   if (results.length === 0) {
@@ -450,10 +517,24 @@ async function getOverview() {
     return { data: mock.getOverview(), source: 'mock' };
   }
 
-  const summary = await wazuhRequest('/agents/summary/status');
+  const [summary, vulnResult, complianceResult, alertOverview] = await Promise.all([
+    wazuhRequest('/agents/summary/status'),
+    getVulnerabilities(),
+    getCompliance('cis'),
+    indexer.isConfigured() ? indexer.getAlertOverview() : Promise.resolve(null),
+  ]);
+
   const active = summary?.connection?.active ?? summary?.active ?? 0;
   const disconnected = summary?.connection?.disconnected ?? summary?.disconnected ?? 0;
   const never = summary?.connection?.never_connected ?? summary?.never_connected ?? 0;
+
+  const vulnStats = vulnResult?.stats || { total: 0 };
+  const complianceScores = (complianceResult?.data || [])
+    .map((c) => c.score)
+    .filter((s) => s > 0);
+  const avgCompliance = complianceScores.length
+    ? Math.round(complianceScores.reduce((a, b) => a + b, 0) / complianceScores.length)
+    : 0;
 
   const emptyTrend = [];
   for (let d = 6; d >= 0; d--) {
@@ -468,24 +549,26 @@ async function getOverview() {
     });
   }
 
+  const alertKpis = alertOverview?.kpis || { totalAlerts: 0, criticalAlerts: 0 };
+
   return {
     data: {
       kpis: {
-        totalAlerts: 0,
-        criticalAlerts: 0,
+        totalAlerts: alertKpis.totalAlerts,
+        criticalAlerts: alertKpis.criticalAlerts,
         agentsOnline: active,
         agentsOffline: disconnected,
         agentsCompromised: 0,
-        threatsBlocked: 0,
-        totalCve: 0,
-        avgCompliance: 0,
+        threatsBlocked: alertKpis.totalAlerts,
+        totalCve: vulnStats.total || 0,
+        avgCompliance,
       },
-      severityTrend: emptyTrend,
-      severityDist: { critical: 0, high: 0, medium: 0, low: 0 },
-      topRules: [],
+      severityTrend: alertOverview?.severityTrend || emptyTrend,
+      severityDist: alertOverview?.severityDist || { critical: 0, high: 0, medium: 0, low: 0 },
+      topRules: alertOverview?.topRules || [],
       mitreHeatmap: [],
-      recentActivity: [],
-      hasCriticalIncident: false,
+      recentActivity: alertOverview?.recentActivity || [],
+      hasCriticalIncident: alertOverview?.hasCriticalIncident || false,
       agentsNeverConnected: never,
     },
     source: 'wazuh',
@@ -511,9 +594,12 @@ async function testConnection() {
 }
 
 function getStatus() {
+  const idx = indexer.getStatus();
   return {
     wazuh: useMock ? 'mock' : connectionStatus,
+    indexer: idx.configured ? (idx.lastError ? 'error' : 'configured') : 'not_configured',
     lastError,
+    indexerError: idx.lastError,
     useMock,
   };
 }
