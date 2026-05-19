@@ -13,27 +13,27 @@ describe('WazuhX API', () => {
   it('GET /api/metrics returns fleet metrics with thresholds', async () => {
     const res = await request(app).get('/api/metrics');
     expect(res.status).toBe(200);
-    expect(res.body.thresholds).toBeDefined();
-    expect(res.body.thresholds.cpu).toBe(90);
-    expect(Array.isArray(res.body.agents)).toBe(true);
-    expect(res.body.agents.length).toBeGreaterThan(0);
-    expect(res.body.summary.totalAgents).toBeGreaterThan(0);
+    expect(res.body.data.thresholds).toBeDefined();
+    expect(res.body.data.thresholds.cpu).toBe(90);
+    expect(Array.isArray(res.body.data.agents)).toBe(true);
+    expect(res.body.data.agents.length).toBeGreaterThan(0);
+    expect(res.body.data.summary.totalAgents).toBeGreaterThan(0);
     expect(res.headers['x-data-source']).toBe('mock');
   });
 
   it('GET /api/metrics/realtime/001 returns netdata metrics in mock mode', async () => {
     const res = await request(app).get('/api/metrics/realtime/001');
     expect(res.status).toBe(200);
-    expect(res.body.agentId).toBe('001');
-    expect(typeof res.body.cpu).toBe('number');
-    expect(typeof res.body.ram).toBe('number');
-    expect(typeof res.body.disk).toBe('number');
-    expect(res.body.diskMetric).toBe('io');
-    expect(res.body.diskUnit).toBe('KiB/s');
-    expect(res.body.source).toBe('netdata');
-    expect(res.body.partial).toBe(false);
-    expect(res.body.reachable).toBe(true);
-    expect(res.body.timestamp).toBeDefined();
+    expect(res.body.data.agentId).toBe('001');
+    expect(typeof res.body.data.cpu).toBe('number');
+    expect(typeof res.body.data.ram).toBe('number');
+    expect(typeof res.body.data.disk).toBe('number');
+    expect(res.body.data.diskMetric).toBe('io');
+    expect(res.body.data.diskUnit).toBe('KiB/s');
+    expect(res.body.data.source).toBe('netdata');
+    expect(res.body.data.partial).toBe(false);
+    expect(res.body.data.reachable).toBe(true);
+    expect(res.body.data.timestamp).toBeDefined();
     expect(res.headers['x-data-source']).toBe('mock');
   });
 
@@ -45,35 +45,35 @@ describe('WazuhX API', () => {
   it('GET /api/metrics?agentId=001 returns single agent metrics', async () => {
     const res = await request(app).get('/api/metrics?agentId=001');
     expect(res.status).toBe(200);
-    expect(res.body.agents).toHaveLength(1);
-    expect(res.body.agents[0].agentId).toBe('001');
-    expect(res.body.agents[0].cpuPercent).toBeDefined();
+    expect(res.body.data.agents).toHaveLength(1);
+    expect(res.body.data.agents[0].agentId).toBe('001');
+    expect(res.body.data.agents[0].cpuPercent).toBeDefined();
   });
 
   it('GET /api/agents returns agents with mock source', async () => {
     const res = await request(app).get('/api/agents');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThan(0);
     expect(res.headers['x-data-source']).toBe('mock');
   });
 
   it('GET /api/agents/:id returns agent detail', async () => {
     const res = await request(app).get('/api/agents/001');
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe('001');
+    expect(res.body.data.id).toBe('001');
   });
 
   it('GET /api/agents/:id/stats returns stats', async () => {
     const res = await request(app).get('/api/agents/001/stats');
     expect(res.status).toBe(200);
-    expect(res.body.cpuUsage).toBeDefined();
+    expect(res.body.data.cpuUsage).toBeDefined();
   });
 
   it('GET /api/agents/:id/processes returns processes', async () => {
     const res = await request(app).get('/api/agents/001/processes');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('GET /api/alerts returns paginated alerts', async () => {
@@ -93,26 +93,27 @@ describe('WazuhX API', () => {
   it('GET /api/fim returns fim events', async () => {
     const res = await request(app).get('/api/fim');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('GET /api/compliance returns compliance data', async () => {
     const res = await request(app).get('/api/compliance?benchmark=cis');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('GET /api/overview returns dashboard data', async () => {
     const res = await request(app).get('/api/overview');
     expect(res.status).toBe(200);
-    expect(res.body.kpis).toBeDefined();
-    expect(res.body.severityTrend).toBeDefined();
+    expect(res.body.data.kpis).toBeDefined();
+    expect(res.body.data.severityTrend).toBeDefined();
   });
 
   it('POST /api/ai/briefing returns briefing', async () => {
     const res = await request(app).post('/api/ai/briefing');
     expect(res.status).toBeLessThanOrEqual(503);
-    expect(res.body.briefing).toBeDefined();
+    const briefing = res.body.data?.briefing ?? res.body.briefing;
+    expect(briefing).toBeDefined();
   });
 
   it('POST /api/ai/chat requires message', async () => {
@@ -125,13 +126,13 @@ describe('WazuhX API', () => {
       .post('/api/ai/chat')
       .send({ message: 'Qual è lo stato?', messages: [] });
     expect(res.status).toBe(200);
-    expect(res.body.reply).toBeDefined();
+    expect(res.body.data.reply).toBeDefined();
   });
 
   it('GET /api/alerts/live-count returns 0 without indexer', async () => {
     const res = await request(app).get('/api/alerts/live-count');
     expect(res.status).toBe(200);
-    expect(res.body.count).toBe(0);
+    expect(res.body.data.count).toBe(0);
   });
 
   it('DELETE /api/cache clears cache', async () => {

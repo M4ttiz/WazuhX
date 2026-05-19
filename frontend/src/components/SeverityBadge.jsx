@@ -1,8 +1,9 @@
 const STYLES = {
-  critical: 'bg-[rgba(220,38,38,0.15)] text-[#f87171] border-[rgba(220,38,38,0.3)]',
-  high: 'bg-[rgba(217,119,6,0.15)] text-[#fbbf24] border-[rgba(217,119,6,0.3)]',
-  medium: 'bg-[rgba(37,99,235,0.15)] text-[#60a5fa] border-[rgba(37,99,235,0.3)]',
-  low: 'bg-[rgba(22,163,74,0.15)] text-[#4ade80] border-[rgba(22,163,74,0.3)]',
+  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
+  high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  low: 'bg-green-500/20 text-green-400 border-green-500/30',
+  info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
 export default function SeverityBadge({ level, label }) {
@@ -19,11 +20,14 @@ export default function SeverityBadge({ level, label }) {
   } else if (lvl >= 5 || label === 'medium') {
     key = 'medium';
     text = label || 'medium';
+  } else if (label === 'info') {
+    key = 'info';
+    text = 'info';
   }
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-xl border text-[11px] font-medium uppercase ${STYLES[key]}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium uppercase ${STYLES[key]}`}
     >
       {lvl > 0 ? `${lvl} · ` : ''}
       {text}

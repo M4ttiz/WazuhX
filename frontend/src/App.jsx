@@ -16,38 +16,32 @@ import ReportGenerator from './pages/ReportGenerator';
 import Settings from './pages/Settings';
 
 export default function App() {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isMock } = useDataSource();
 
-  const handleRefresh = () => {
-    setRefreshKey((k) => k + 1);
-    setLastUpdate(Date.now());
-  };
-
   return (
-    <div className="min-h-screen bg-base">
-      <Sidebar />
-      <div className="ml-[220px] min-h-screen flex flex-col">
+    <div className="min-h-screen bg-[#0f172a]">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="lg:ml-[220px] ml-0 min-h-screen flex flex-col">
         {isMock && (
           <div className="banner-warning">
             Wazuh non raggiungibile — modalità demo
           </div>
         )}
-        <Header onRefresh={handleRefresh} lastUpdate={lastUpdate} />
-        <main className="flex-1 p-6">
+        <Header onMenuOpen={() => setSidebarOpen(true)} />
+        <main className="flex-1 p-4 lg:p-6">
           <Routes>
-            <Route path="/" element={<Dashboard key={refreshKey} />} />
-            <Route path="/agents" element={<Agents key={refreshKey} />} />
-            <Route path="/agents/:id" element={<AgentDetail key={refreshKey} />} />
-            <Route path="/alerts" element={<Alerts key={refreshKey} />} />
-            <Route path="/vulnerabilities" element={<Vulnerabilities key={refreshKey} />} />
-            <Route path="/fim" element={<FIM key={refreshKey} />} />
-            <Route path="/metrics" element={<Metrics key={refreshKey} />} />
-            <Route path="/compliance" element={<Compliance key={refreshKey} />} />
-            <Route path="/ai" element={<AIAnalyst key={refreshKey} />} />
-            <Route path="/reports" element={<ReportGenerator key={refreshKey} />} />
-            <Route path="/settings" element={<Settings key={refreshKey} />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/agents" element={<Agents />} />
+            <Route path="/agents/:id" element={<AgentDetail />} />
+            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/vulnerabilities" element={<Vulnerabilities />} />
+            <Route path="/fim" element={<FIM />} />
+            <Route path="/metrics" element={<Metrics />} />
+            <Route path="/compliance" element={<Compliance />} />
+            <Route path="/ai" element={<AIAnalyst />} />
+            <Route path="/reports" element={<ReportGenerator />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
       </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const metricsService = require('../services/metricsService');
 const realtimeMetricsService = require('../services/realtimeMetricsService');
+const { sendData } = require('../utils/response');
 const { withCache, getCacheKey } = require('../middleware/cache');
 
 const router = express.Router();
@@ -21,11 +22,10 @@ router.get('/realtime/:agentId', async (req, res, next) => {
     if (result.notFound || !result.data) {
       return res.status(404).json({ error: 'Agent not found' });
     }
-    res.set(
-      'X-Data-Source',
-      result.source === 'mock' ? 'mock' : result.data.source || result.source || 'netdata'
-    );
-    res.json(result.data);
+    sendData(res, {
+      data: result.data,
+      source: result.source === 'mock' ? 'mock' : result.data.source || result.source || 'netdata',
+    });
   } catch (err) {
     next(err);
   }
@@ -38,8 +38,9 @@ router.get('/', async (req, res, next) => {
     const result = await withCache(req, res, key, metricsTtl, () =>
       metricsService.getMetrics(agentId)
     );
-    res.set('X-Data-Source', result.source || 'wazuh');
-    res.json(result);
+    const source = result.source || 'wazuh';
+    const { source: _s, ...payload } = result;
+    sendData(res, { data: payload, source });
   } catch (err) {
     next(err);
   }

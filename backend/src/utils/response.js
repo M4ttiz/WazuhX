@@ -1,19 +1,13 @@
 function sendData(res, result) {
-  const source = result?.source ?? 'unknown';
-  res.set('X-Data-Source', source);
+  const { data, source, pagination, stats } = result || {};
+  const dataSource = source || 'wazuh';
+  res.set('X-Data-Source', dataSource);
 
-  if (result?.stats !== undefined) {
-    return res.json({ data: result.data, stats: result.stats });
-  }
+  const response = { data };
+  if (pagination) response.pagination = pagination;
+  if (stats) response.stats = stats;
 
-  if (result?.pagination) {
-    return res.json({
-      data: result.data,
-      pagination: result.pagination,
-    });
-  }
-
-  return res.json(result?.data !== undefined ? result.data : result);
+  return res.json(response);
 }
 
 module.exports = { sendData };

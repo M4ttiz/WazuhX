@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ToastProvider } from './context/ToastContext';
 import { DataSourceProvider } from './context/DataSourceContext';
+import { RefreshProvider } from './context/RefreshContext';
 import './index.css';
 
 const theme = localStorage.getItem('wazuhx-theme') || 'dark';
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ToastProvider>
         <DataSourceProvider>
-          <App />
+          <RefreshProvider>
+            <App />
+          </RefreshProvider>
         </DataSourceProvider>
       </ToastProvider>
     </BrowserRouter>

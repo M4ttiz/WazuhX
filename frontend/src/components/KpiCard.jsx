@@ -1,39 +1,40 @@
 const VARIANTS = {
-  info: { border: 'border-l-info', icon: 'text-info' },
-  ok: { border: 'border-l-success', icon: 'text-success' },
-  critical: { border: 'border-l-danger', icon: 'text-danger' },
-  warning: { border: 'border-l-warning', icon: 'text-warning' },
-  accent: { border: 'border-l-accent', icon: 'text-accent' },
+  info: { border: 'border-l-[#3b82f6]', accent: 'text-[#60a5fa]' },
+  ok: { border: 'border-l-[#22c55e]', accent: 'text-[#4ade80]' },
+  critical: { border: 'border-l-[#ef4444]', accent: 'text-[#f87171]' },
+  warning: { border: 'border-l-[#f59e0b]', accent: 'text-[#fbbf24]' },
+  accent: { border: 'border-l-[#f59e0b]', accent: 'text-[#f59e0b]' },
 };
 
-const ICONS = {
-  info: 'ℹ',
-  ok: '✓',
-  critical: '!',
-  warning: '⚠',
-  accent: '●',
-};
-
-export default function KpiCard({ label, value, sub, trend, variant = 'info', loading }) {
+export default function KpiCard({ label, value, sub, trend, variant = 'info', loading, hero, icon: Icon }) {
   if (loading) {
     return (
-      <div className="card border-l-[3px] border-l-border">
-        <div className="skeleton h-3 w-20 mb-3" />
-        <div className="skeleton h-7 w-16" />
+      <div className={`${hero ? 'kpi-hero' : 'card'} border-l-[3px] border-l-[#334155]`}>
+        <div className="skeleton h-3 w-24 mb-3" />
+        <div className="skeleton h-9 w-20" />
       </div>
     );
   }
 
   const v = VARIANTS[variant] || VARIANTS.info;
+  const Wrapper = hero ? 'kpi-hero' : 'card';
 
   return (
-    <div className={`card border-l-[3px] ${v.border} relative`}>
-      <span className={`absolute top-5 right-5 text-sm ${v.icon}`}>{ICONS[variant] || ICONS.info}</span>
-      <p className="text-[28px] font-bold text-primary leading-none">{value ?? '—'}</p>
-      <p className="text-xs text-secondary mt-2">{label}</p>
-      {sub && <p className="text-xs text-muted mt-1">{sub}</p>}
+    <div className={`${Wrapper} border-l-[3px] ${v.border} relative`}>
+      {Icon && (
+        <div className={`absolute top-5 right-5 ${v.accent}`}>
+          <Icon size={22} aria-hidden />
+        </div>
+      )}
+      <p className="text-3xl font-bold text-[#f1f5f9] leading-none">{value ?? '—'}</p>
+      <p className="text-sm text-[#94a3b8] mt-2">{label}</p>
+      {sub && <p className="text-xs text-[#64748b] mt-1">{sub}</p>}
       {trend && (
-        <p className={`text-xs mt-1 font-medium ${trend.startsWith('+') ? 'text-success' : trend.startsWith('-') ? 'text-danger' : 'text-muted'}`}>
+        <p
+          className={`text-xs mt-2 font-semibold ${
+            trend.startsWith('+') ? 'text-[#10b981]' : trend.startsWith('-') ? 'text-[#ef4444]' : 'text-[#64748b]'
+          }`}
+        >
           {trend}
         </p>
       )}

@@ -39,11 +39,16 @@ router.get('/overview', async (req, res, next) => {
 
 router.get('/live-count', async (_req, res, next) => {
   try {
+    let count = 0;
+    let source = 'wazuh';
     if (indexer.isConfigured()) {
-      const count = await indexer.getLiveAlertCount();
-      if (count !== null) return res.json({ count });
+      const liveCount = await indexer.getLiveAlertCount();
+      if (liveCount !== null) {
+        count = liveCount;
+        source = 'indexer';
+      }
     }
-    res.json({ count: 0 });
+    sendData(res, { data: { count }, source });
   } catch (err) {
     next(err);
   }

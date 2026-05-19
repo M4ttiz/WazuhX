@@ -1,63 +1,62 @@
 import { useWazuh } from '../hooks/useWazuh';
+import PageHeader from '../components/PageHeader';
+import EmptyState from '../components/EmptyState';
+import { FileSearch } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
 
 export default function FIM() {
-  const { data: events, loading } = useWazuh('/fim');
-
-  if (loading) {
-    return <div className="card skeleton h-64" />;
-  }
+  const { data: events, loading, error } = useWazuh('/fim');
+  const list = Array.isArray(events) ? events : [];
 
   return (
-    <div className="card p-0 overflow-hidden">
-      <div className="table-wrap border-0 rounded-none">
-        <table>
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Agente</th>
-              <th>Path</th>
-              <th>Tipo</th>
-              <th>Size</th>
-              <th>Permessi</th>
-              <th>Utente</th>
-              <th>Hash</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events?.map((e) => (
-              <tr key={e.id} className={e.critical ? 'bg-[rgba(220,38,38,0.08)]' : ''}>
-                <td className="text-xs text-secondary">{formatDate(e.timestamp)}</td>
-                <td>{e.agentName}</td>
-                <td className="font-mono text-xs max-w-xs truncate">{e.path}</td>
-                <td>
-                  <span
-                    className={
-                      e.type === 'deleted'
-                        ? 'text-danger'
-                        : e.type === 'added'
-                          ? 'text-success'
-                          : 'text-warning'
-                    }
-                  >
-                    {e.type}
-                  </span>
-                </td>
-                <td className="text-xs">{e.size}</td>
-                <td className="font-mono text-xs">{e.permissions || '—'}</td>
-                <td>{e.user}</td>
-                <td className="font-mono text-[11px] text-muted">
-                  {e.type === 'modified' && (
-                    <>
-                      {e.md5Before?.slice(0, 8)} → {e.md5After?.slice(0, 8)}
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="File Integrity Monitoring"
+        subtitle="Eventi di modifica file rilevati dagli agent"
+      />
+
+      {error && <EmptyState icon={FileSearch} title="Errore" message={error} />}
+
+      {loading && <div className="card skeleton h-64" />}
+
+      {!loading && !error && list.length === 0 && (
+        <EmptyState icon={FileSearch} title="Nessun evento FIM" message="Non ci sono eventi da visualizzare." />
+      )}
+
+      {!loading && !error && list.length > 0 && (
+        <div className="card p-0 overflow-hidden">
+          <div className="table-wrap border-0 rounded-none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Agente</th>
+                  <th>Path</th>
+                  <th>Tipo</th>
+                  <th>Size</th>
+                  <th>Permessi</th>
+                  <th>Utente</th>
+                  <th>Hash</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((e) => (
+                  <tr key={e.id} className={e.critical ? 'bg-red-500/10' : ''}>
+                    <td className="text-xs text-[#94a3b8]">{formatDate(e.timestamp)}</td>
+                    <td>{e.agentName}</td>
+                    <td className="font-mono text-xs max-w-xs truncate">{e.path}</td>
+                    <td>{e.type}</td>
+                    <td className="font-mono text-xs">{e.size}</td>
+                    <td className="font-mono text-xs">{e.permissions}</td>
+                    <td>{e.user}</td>
+                    <td className="font-mono text-xs truncate max-w-[120px]">{e.hash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

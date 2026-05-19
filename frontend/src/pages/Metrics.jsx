@@ -5,6 +5,7 @@ import { getRefreshInterval } from '../hooks/useAutoRefresh';
 import ResourceMetricCard, { metricBarColor } from '../components/ResourceMetricCard';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 import KpiCard from '../components/KpiCard';
+import PageHeader from '../components/PageHeader';
 import { formatUptime, formatLoadAverage, formatMetricsSource } from '../utils/formatters';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -145,12 +146,10 @@ export default function Metrics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-primary">Metriche risorse</h1>
-        <p className="text-secondary text-sm mt-1">
-          Prestazioni live (Netdata, ~2–3s) per CPU/RAM/disk I/O; capacità dischi, uptime e alert da syscollector.
-        </p>
-      </div>
+      <PageHeader
+        title="Metriche risorse"
+        subtitle="Prestazioni live (Netdata) e capacità da syscollector per ogni endpoint"
+      />
 
       <ThresholdAlertBanner alerts={alerts} />
 

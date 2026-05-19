@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWazuh } from '../hooks/useWazuh';
 import AlertTable from '../components/AlertTable';
+import PageHeader from '../components/PageHeader';
 import { exportCsv } from '../utils/formatters';
 
 export default function Alerts() {
@@ -26,7 +27,7 @@ export default function Alerts() {
     const fetchLive = () => {
       fetch('/api/alerts/live-count')
         .then((r) => r.json())
-        .then((d) => setLiveCount(d.count))
+        .then((d) => setLiveCount(d.data?.count ?? d.count ?? 0))
         .catch(() => {});
     };
     fetchLive();
@@ -52,14 +53,20 @@ export default function Alerts() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Alert"
+        subtitle="Monitora eventi di sicurezza e incidenti in tempo reale"
+        actions={
+          <button type="button" className="btn-primary" onClick={handleExport}>
+            Export CSV
+          </button>
+        }
+      />
       <div className="flex items-center justify-between">
-        <p className="text-secondary text-sm">
-          <span className="text-2xl font-bold text-primary">{liveCount}</span>
+        <p className="text-[#94a3b8] text-sm">
+          <span className="text-2xl font-bold text-[#f1f5f9]">{liveCount}</span>
           {' '}eventi/min
         </p>
-        <button type="button" className="btn-primary" onClick={handleExport}>
-          Export CSV
-        </button>
       </div>
 
       <div className="card flex flex-wrap gap-4 items-end">

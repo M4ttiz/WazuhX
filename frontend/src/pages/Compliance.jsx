@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWazuh } from '../hooks/useWazuh';
+import PageHeader from '../components/PageHeader';
 import { apiDownload } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import {
@@ -41,12 +42,10 @@ export default function Compliance() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-primary">Compliance (SCA)</h1>
-        <p className="text-secondary text-sm mt-1">
-          Security Configuration Assessment — benchmark CIS, PCI-DSS, GDPR e altri.
-        </p>
-      </div>
+      <PageHeader
+        title="Compliance"
+        subtitle="Security Configuration Assessment — benchmark CIS, PCI-DSS, GDPR e altri"
+      />
 
       <div className="card flex flex-wrap gap-3 items-center">
         {BENCHMARKS.map((b) => (

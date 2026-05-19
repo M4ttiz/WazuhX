@@ -1,4 +1,5 @@
 import { useWazuh } from '../hooks/useWazuh';
+import PageHeader from '../components/PageHeader';
 import KpiCard from '../components/KpiCard';
 import SeverityBadge from '../components/SeverityBadge';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -20,7 +21,11 @@ export default function Vulnerabilities() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <PageHeader
+        title="Vulnerabilità"
+        subtitle="Traccia CVE e patch mancanti sull'infrastruttura"
+      />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
         <KpiCard label="Totale CVE" value={stats.total} variant="info" loading={loading} />
         <KpiCard label="Critical" value={stats.critical} variant="critical" loading={loading} />
         <KpiCard label="High" value={stats.high} variant="warning" loading={loading} />

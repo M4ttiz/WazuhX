@@ -4,6 +4,16 @@ export function setDataSourceListener(fn) {
   onDataSourceChange = fn;
 }
 
+function normalizeJsonResponse(json) {
+  if (json && typeof json === 'object' && 'data' in json) {
+    const { data, pagination, stats } = json;
+    if (pagination !== undefined) return { data, pagination };
+    if (stats !== undefined) return { data, stats };
+    return data;
+  }
+  return json;
+}
+
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -17,12 +27,14 @@ export async function apiFetch(path, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const payload = normalizeJsonResponse(err);
+    throw new Error(err.error || payload?.error || `HTTP ${res.status}`);
   }
 
   const contentType = res.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    return res.json();
+    const json = await res.json();
+    return normalizeJsonResponse(json);
   }
   return res;
 }
