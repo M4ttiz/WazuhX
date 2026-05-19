@@ -41,7 +41,7 @@ async function authenticate() {
   }
 
   const { data } = await axios.post(
-    `${baseURL}/security/user/authenticate`,
+    `${baseURL}/security/user/authenticate?raw=true`,
     {},
     {
       auth: { username: user, password },
@@ -49,7 +49,11 @@ async function authenticate() {
       timeout: 10000,
     }
   );
-  token = data.data?.token || data.token;
+  if (typeof data === 'string') {
+    token = data.trim();
+  } else {
+    token = data.data?.token || data.token;
+  }
   if (!token) throw new Error('No token received from Wazuh API');
   tokenExpiry = Date.now() + 15 * 60 * 1000;
   connectionStatus = 'connected';
@@ -58,7 +62,12 @@ async function authenticate() {
 }
 
 async function getToken() {
-  if (token && Date.now() < tokenExpiry) return token;
+  if (token && Date.now() < tokenExpiry) {
+    if (!useMock && connectionStatus === 'unknown') {
+      connectionStatus = 'connected';
+    }
+    return token;
+  }
 
   if (_tokenPromise) return _tokenPromise;
 
@@ -110,6 +119,7 @@ async function wazuhRequest(path, params = {}) {
   if (useMock) return null;
   try {
     const { data } = await client.get(path, { params });
+    if (!useMock) connectionStatus = 'connected';
     return data.data !== undefined ? data.data : data;
   } catch (err) {
     const status = err.response?.status;
@@ -593,14 +603,49 @@ async function testConnection() {
   }
 }
 
-function getStatus() {
+function getIndexerHealthStatus() {
   const idx = indexer.getStatus();
+  return idx.configured ? (idx.lastError ? 'error' : 'configured') : 'not_configured';
+}
+
+function getStatus() {
   return {
     wazuh: useMock ? 'mock' : connectionStatus,
-    indexer: idx.configured ? (idx.lastError ? 'error' : 'configured') : 'not_configured',
+    indexer: getIndexerHealthStatus(),
     lastError,
-    indexerError: idx.lastError,
+    indexerError: indexer.getStatus().lastError,
     useMock,
+  };
+}
+
+async function checkHealth() {
+  const indexerStatus = getIndexerHealthStatus();
+
+  if (useMock) {
+    return {
+      wazuh: 'mock',
+      indexer: indexerStatus,
+      lastError,
+      indexerError: indexer.getStatus().lastError,
+      useMock: true,
+    };
+  }
+
+  try {
+    await getToken();
+    await wazuhRequest('/agents', { limit: 1 });
+    connectionStatus = 'connected';
+  } catch (err) {
+    lastError = err.response?.data?.message || err.message;
+    connectionStatus = 'error';
+  }
+
+  return {
+    wazuh: connectionStatus,
+    indexer: indexerStatus,
+    lastError,
+    indexerError: indexer.getStatus().lastError,
+    useMock: false,
   };
 }
 
@@ -621,6 +666,7 @@ module.exports = {
   getOverview,
   testConnection,
   getStatus,
+  checkHealth,
   forceMock,
   getAIContext: () => mock.getAIContext(),
 };

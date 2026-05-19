@@ -26,16 +26,20 @@ app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use('/api', apiLimiter);
 
-app.get('/api/health', (req, res) => {
-  const status = wazuh.getStatus();
-  res.json({
-    status: 'ok',
-    wazuh: status.wazuh,
-    indexer: status.indexer,
-    useMock: status.useMock,
-    cache: getCacheStats(),
-    timestamp: new Date().toISOString(),
-  });
+app.get('/api/health', async (req, res, next) => {
+  try {
+    const status = await wazuh.checkHealth();
+    res.json({
+      status: 'ok',
+      wazuh: status.wazuh,
+      indexer: status.indexer,
+      useMock: status.useMock,
+      cache: getCacheStats(),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.post('/api/settings/test-connection', async (req, res) => {

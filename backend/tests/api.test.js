@@ -2,11 +2,12 @@ const request = require('supertest');
 const app = require('../src/index');
 
 describe('WazuhX API', () => {
-  it('GET /api/health returns ok', async () => {
+  it('GET /api/health returns ok with mock wazuh status', async () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.wazuh).toBeDefined();
+    expect(res.body.wazuh).toBe('mock');
+    expect(res.body.indexer).toBeDefined();
   });
 
   it('GET /api/agents returns agents with mock source', async () => {
