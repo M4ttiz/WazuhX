@@ -10,6 +10,25 @@ describe('WazuhX API', () => {
     expect(res.body.indexer).toBeDefined();
   });
 
+  it('GET /api/metrics returns fleet metrics with thresholds', async () => {
+    const res = await request(app).get('/api/metrics');
+    expect(res.status).toBe(200);
+    expect(res.body.thresholds).toBeDefined();
+    expect(res.body.thresholds.cpu).toBe(90);
+    expect(Array.isArray(res.body.agents)).toBe(true);
+    expect(res.body.agents.length).toBeGreaterThan(0);
+    expect(res.body.summary.totalAgents).toBeGreaterThan(0);
+    expect(res.headers['x-data-source']).toBe('mock');
+  });
+
+  it('GET /api/metrics?agentId=001 returns single agent metrics', async () => {
+    const res = await request(app).get('/api/metrics?agentId=001');
+    expect(res.status).toBe(200);
+    expect(res.body.agents).toHaveLength(1);
+    expect(res.body.agents[0].agentId).toBe('001');
+    expect(res.body.agents[0].cpuPercent).toBeDefined();
+  });
+
   it('GET /api/agents returns agents with mock source', async () => {
     const res = await request(app).get('/api/agents');
     expect(res.status).toBe(200);

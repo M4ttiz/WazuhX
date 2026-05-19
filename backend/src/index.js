@@ -14,6 +14,7 @@ const complianceRouter = require('./routes/compliance');
 const overviewRouter = require('./routes/overview');
 const aiRouter = require('./routes/ai');
 const reportsRouter = require('./routes/reports');
+const metricsRouter = require('./routes/metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -52,6 +53,7 @@ app.delete('/api/cache', (_req, res) => {
   res.json({ success: true, message: 'Cache cleared' });
 });
 
+app.use('/api/metrics', metricsRouter);
 app.use('/api/agents', agentsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/vulnerabilities', vulnerabilitiesRouter);

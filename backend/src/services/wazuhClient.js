@@ -327,35 +327,8 @@ async function getAgent(id) {
 }
 
 async function getAgentStats(id) {
-  if (useMock) return { data: mock.getAgentStats(id), source: 'mock' };
-
-  const agentRef = formatAgentId(id);
-  const hardware = await wazuhRequest(`/syscollector/${agentRef}/hardware`);
-  const osInfo = await wazuhRequest(`/syscollector/${agentRef}/os`);
-
-  if (!hardware?.affected_items?.[0] && !osInfo?.affected_items?.[0]) {
-    return { data: {}, source: 'wazuh' };
-  }
-
-  const hw = hardware?.affected_items?.[0] || {};
-  const ramTotal = parseInt(hw.ram?.total || hw.ram_total || 1, 10);
-  const ramFree = parseInt(hw.ram?.free || hw.ram_free || 0, 10);
-  const ramUsage = ramTotal > 0 ? Math.round(((ramTotal - ramFree) / ramTotal) * 100) : 0;
-
-  return {
-    data: {
-      cpuUsage: parseInt(hw.cpu?.usage || hw.cpu_usage || 0, 10),
-      ramUsage,
-      disks: (hw.disk || []).map((d) => ({
-        mount: d.mount || d.path || '/',
-        used: d.usage ? Math.round(d.usage) : 0,
-        total: Math.round((d.size || 0) / 1024 / 1024 / 1024) || 100,
-      })),
-      network: { rx: hw.rx?.bytes || 0, tx: hw.tx?.bytes || 0 },
-      uptime: parseInt(osInfo?.affected_items?.[0]?.uptime || hw.uptime || 0, 10),
-    },
-    source: 'wazuh',
-  };
+  const metricsService = require('./metricsService');
+  return metricsService.getAgentStatsLegacy(id);
 }
 
 async function getAgentProcesses(id) {
@@ -654,6 +627,10 @@ function forceMock(enabled) {
   connectionStatus = enabled ? 'mock' : 'unknown';
 }
 
+function isMockMode() {
+  return useMock;
+}
+
 module.exports = {
   getAgents: getAgentsFromWazuh,
   getAgent,
@@ -668,5 +645,8 @@ module.exports = {
   getStatus,
   checkHealth,
   forceMock,
+  isMockMode,
+  formatAgentId,
+  wazuhRequest,
   getAIContext: () => mock.getAIContext(),
 };

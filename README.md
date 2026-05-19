@@ -11,7 +11,8 @@
 ## Features
 
 - Real-time security dashboard (KPI, MITRE heatmap, alert trends)
-- Agent/endpoint monitoring with live resource gauges
+- Agent resource metrics (CPU, RAM, disk, uptime, load) with threshold alerts
+- Fleet **Metriche** page and per-agent **Risorse** tab (syscollector + optional script)
 - Alert management with MITRE mapping and CSV export
 - Vulnerability (CVE) tracking with NVD links
 - File Integrity Monitoring (FIM)
@@ -80,6 +81,11 @@ Frontend: http://localhost:5173 (proxies `/api` → backend :3001)
 | `NODE_ENV` | Environment | `production` |
 | `USE_MOCK` | Force demo/mock mode | `false` |
 | `CACHE_TTL_SECONDS` | API cache TTL (live data) | `60` |
+| `WAZUH_INDEXER_URL` | OpenSearch for alerts/CVE/custom metrics | — |
+| `METRICS_CPU_THRESHOLD` | CPU alert threshold (%) | `90` |
+| `METRICS_RAM_THRESHOLD` | RAM alert threshold (%) | `90` |
+| `METRICS_DISK_THRESHOLD` | Disk alert threshold (%) | `85` |
+| `METRICS_CACHE_TTL_SECONDS` | Metrics API cache | `30` |
 | `PORT` | Backend port | `3001` |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | Allow self-signed Wazuh certs | `0` (Docker) |
 
@@ -107,6 +113,7 @@ Ensure `wazuh-manager` hostname resolves inside the network.
 | GET | `/api/vulnerabilities` | CVE list |
 | GET | `/api/fim` | FIM events |
 | GET | `/api/compliance` | SCA/compliance |
+| GET | `/api/metrics` | Agent CPU/RAM/disk metrics (`?agentId=`) |
 | POST | `/api/ai/briefing` | AI executive briefing |
 | POST | `/api/ai/chat` | AI chat |
 | POST | `/api/reports/generate` | PDF/HTML report |
@@ -134,6 +141,13 @@ Ensure `wazuh-manager` hostname resolves inside the network.
 
 - App shows demo banner and serves mock data (`X-Data-Source: mock`)
 - Set `USE_MOCK=true` for local development without Wazuh
+
+### Metrics empty or stale
+
+- **Syscollector** updates on a schedule (often hourly): RAM `usage` is reliable; CPU % is estimated from top processes.
+- For **realtime** CPU, load average, and disk: deploy [`deploy/wazuh/`](deploy/wazuh/README.md) (`agent-metrics.sh` + logcollector + indexer).
+- Configure `WAZUH_INDEXER_URL` so WazuhX can read `wazuhx_metrics` alerts.
+- Clear cache after changes: `curl -X DELETE http://localhost:3001/api/cache`
 
 ## Links
 

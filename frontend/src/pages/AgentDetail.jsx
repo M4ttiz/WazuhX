@@ -5,8 +5,11 @@ import { getRefreshInterval } from '../hooks/useAutoRefresh';
 import GaugeChart from '../components/GaugeChart';
 import AlertTable from '../components/AlertTable';
 import SeverityBadge from '../components/SeverityBadge';
+import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 import { useAI } from '../hooks/useAI';
-import { formatBytes, formatUptime, formatDate } from '../utils/formatters';
+import {
+  formatBytes, formatUptime, formatDate, formatLoadAverage, formatMetricsSource,
+} from '../utils/formatters';
 
 const TABS = ['Overview', 'Risorse', 'Alert', 'Vulnerabilità', 'FIM', 'Compliance', 'AI Analysis'];
 
@@ -18,10 +21,28 @@ export default function AgentDetail() {
   const statsInterval = getRefreshInterval('agent-stats', 30000);
 
   const { data: agent, loading } = useWazuh(`/agents/${id}`);
-  const { data: stats, refetch: refetchStats } = useWazuh(`/agents/${id}/stats`, {
+  const { data: metricsPayload, loading: metricsLoading, refetch: refetchMetrics } = useWazuh('/metrics', {
+    params: { agentId: id },
     refreshInterval: tab === 'Risorse' ? statsInterval : null,
     skip: tab !== 'Risorse',
   });
+  const agentMetrics = metricsPayload?.agents?.[0];
+  const stats = agentMetrics
+    ? {
+        cpuUsage: agentMetrics.cpuPercent,
+        ramUsage: agentMetrics.ramPercent,
+        disks: (agentMetrics.disks || []).map((d) => ({
+          mount: d.mount,
+          used: d.usedPercent,
+          total: d.totalGb,
+        })),
+        network: agentMetrics.network,
+        uptime: agentMetrics.uptimeSeconds,
+        loadAverage: agentMetrics.loadAverage,
+        scanTime: agentMetrics.scanTime,
+        source: agentMetrics.source,
+      }
+    : null;
   const { data: processes } = useWazuh(`/agents/${id}/processes`, { skip: tab !== 'Risorse' });
   const { data: alertsData } = useWazuh('/alerts', {
     params: { agentId: id, limit: 50 },
@@ -86,8 +107,12 @@ export default function AgentDetail() {
 
       {tab === 'Risorse' && stats && (
         <div className="space-y-6">
+          <ThresholdAlertBanner alerts={agentMetrics?.thresholdAlerts || []} />
+          <p className="text-xs text-muted">
+            Fonte: {formatMetricsSource(stats.source, stats.scanTime)}
+          </p>
           <div className="flex justify-end">
-            <button type="button" className="btn-secondary text-sm" onClick={refetchStats}>
+            <button type="button" className="btn-secondary text-sm" onClick={refetchMetrics}>
               Aggiorna
             </button>
           </div>
@@ -113,10 +138,11 @@ export default function AgentDetail() {
               </div>
             ))}
           </div>
-          <div className="card grid md:grid-cols-3 gap-4 text-sm text-secondary">
+          <div className="card grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-secondary">
             <p>RX: <span className="font-mono text-primary">{formatBytes(stats.network?.rx)}/s</span></p>
             <p>TX: <span className="font-mono text-primary">{formatBytes(stats.network?.tx)}/s</span></p>
             <p>Uptime: <span className="font-mono text-primary">{formatUptime(stats.uptime)}</span></p>
+            <p>Load avg: <span className="font-mono text-primary">{formatLoadAverage(stats.loadAverage)}</span></p>
           </div>
           <div className="card p-0 overflow-hidden">
             <p className="card-title px-5 pt-5">Top processi</p>
@@ -143,6 +169,12 @@ export default function AgentDetail() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === 'Risorse' && !stats && !metricsLoading && (
+        <div className="card text-center py-12 text-secondary text-sm">
+          Metriche non disponibili per questo agente. Verifica syscollector o lo script wazuhx_metrics.
         </div>
       )}
 

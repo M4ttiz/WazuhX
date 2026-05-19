@@ -33,6 +33,22 @@ export function formatUptime(seconds) {
   return `${d}g ${h}h`;
 }
 
+export function formatLoadAverage(load) {
+  if (!load?.length) return '—';
+  return load.map((n) => Number(n).toFixed(2)).join(' / ');
+}
+
+export function formatMetricsSource(source, scanTime) {
+  const labels = {
+    syscollector: 'Syscollector',
+    custom: 'Script agente',
+    mixed: 'Syscollector + script',
+  };
+  const base = labels[source] || source || '—';
+  if (!scanTime) return base;
+  return `${base} · ${formatRelative(scanTime)}`;
+}
+
 export function severityColor(level) {
   if (level >= 12) return 'critical';
   if (level >= 8) return 'warning';

@@ -7,6 +7,7 @@ const NAV = [
   { to: '/alerts', label: 'Alert', icon: 'alerts' },
   { to: '/vulnerabilities', label: 'CVE', icon: 'vulnerabilities' },
   { to: '/fim', label: 'FIM', icon: 'fim' },
+  { to: '/metrics', label: 'Metriche', icon: 'metrics' },
   { to: '/compliance', label: 'Compliance', icon: 'compliance' },
   { to: '/ai', label: 'AI Analyst', icon: 'ai' },
   { to: '/reports', label: 'Report', icon: 'reports' },

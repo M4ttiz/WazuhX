@@ -9,6 +9,7 @@ import AgentDetail from './pages/AgentDetail';
 import Alerts from './pages/Alerts';
 import Vulnerabilities from './pages/Vulnerabilities';
 import FIM from './pages/FIM';
+import Metrics from './pages/Metrics';
 import Compliance from './pages/Compliance';
 import AIAnalyst from './pages/AIAnalyst';
 import ReportGenerator from './pages/ReportGenerator';
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/alerts" element={<Alerts key={refreshKey} />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities key={refreshKey} />} />
             <Route path="/fim" element={<FIM key={refreshKey} />} />
+            <Route path="/metrics" element={<Metrics key={refreshKey} />} />
             <Route path="/compliance" element={<Compliance key={refreshKey} />} />
             <Route path="/ai" element={<AIAnalyst key={refreshKey} />} />
             <Route path="/reports" element={<ReportGenerator key={refreshKey} />} />

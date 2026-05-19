@@ -337,6 +337,51 @@ async function getLiveAlertCount() {
   return typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0;
 }
 
+function parseCustomMetricsPayload(src) {
+  const raw = src.full_log || src.message || src.data || '';
+  const text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+  const match = text.match(/wazuhx_metrics:\s*(\{[\s\S]*\})/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+async function getLatestCustomMetrics(agentId) {
+  const must = [
+    {
+      bool: {
+        should: [
+          { term: { 'rule.groups': 'wazuhx_metrics' } },
+          { match: { 'rule.groups': 'wazuhx_metrics' } },
+        ],
+        minimum_should_match: 1,
+      },
+    },
+    { term: { 'agent.id': formatAgentId(agentId) } },
+  ];
+
+  const result = await search('wazuh-alerts-*', {
+    size: 1,
+    sort: [{ timestamp: { order: 'desc', unmapped_type: 'date' } }],
+    query: { bool: { must } },
+  });
+
+  const hit = result?.hits?.hits?.[0];
+  if (!hit) return null;
+
+  const src = hit._source || {};
+  const payload = parseCustomMetricsPayload(src);
+  if (!payload) return null;
+
+  return {
+    ...payload,
+    timestamp: src.timestamp || src['@timestamp'],
+  };
+}
+
 function getStatus() {
   return {
     configured: isConfigured(),
@@ -352,5 +397,6 @@ module.exports = {
   getFimEvents,
   getAlertOverview,
   getLiveAlertCount,
+  getLatestCustomMetrics,
   getStatus,
 };

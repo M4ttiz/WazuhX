@@ -1,0 +1,5 @@
+<decoder name="wazuhx-metrics">
+  <prematch>wazuhx_metrics:</prematch>
+  <plugin_decoder>JSON</plugin_decoder>
+  <json_null_field>discard</json_null_field>
+</decoder>

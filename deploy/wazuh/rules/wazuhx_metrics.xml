@@ -1,0 +1,31 @@
+<group name="wazuhx_metrics,">
+  <rule id="100700" level="3">
+    <decoded_as>wazuhx-metrics</decoded_as>
+    <description>WazuhX host metrics collected</description>
+    <group>wazuhx_metrics,</group>
+  </rule>
+
+  <rule id="100701" level="10">
+    <if_sid>100700</if_sid>
+    <field name="cpu">\.+</field>
+    <match>^9[0-9]$|^100$</match>
+    <description>WazuhX: CPU usage above 90% ($(cpu)%)</description>
+    <group>wazuhx_metrics,</group>
+  </rule>
+
+  <rule id="100702" level="10">
+    <if_sid>100700</if_sid>
+    <field name="ram">\.+</field>
+    <match>^9[0-9]$|^100$</match>
+    <description>WazuhX: RAM usage above 90% ($(ram)%)</description>
+    <group>wazuhx_metrics,</group>
+  </rule>
+
+  <rule id="100703" level="9">
+    <if_sid>100700</if_sid>
+    <field name="disk">\.+</field>
+    <match>^8[5-9]$|^9[0-9]$|^100$</match>
+    <description>WazuhX: Disk usage above 85% ($(disk)%)</description>
+    <group>wazuhx_metrics,</group>
+  </rule>
+</group>

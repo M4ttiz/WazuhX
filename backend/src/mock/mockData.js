@@ -391,6 +391,97 @@ function getVulnStats() {
   };
 }
 
+function getMetrics(agentId) {
+  const thresholds = {
+    cpu: parseInt(process.env.METRICS_CPU_THRESHOLD || '90', 10),
+    ram: parseInt(process.env.METRICS_RAM_THRESHOLD || '90', 10),
+    disk: parseInt(process.env.METRICS_DISK_THRESHOLD || '85', 10),
+  };
+
+  let list = agents.filter((a) => a.status === 'active');
+  if (agentId) {
+    list = list.filter((a) => a.id === String(agentId).padStart(3, '0'));
+  }
+
+  const agentMetrics = list.map((a) => {
+    const maxDisk = Math.max(...(a.disks || []).map((d) => d.used), 0);
+    const thresholdAlerts = [];
+    if (a.cpuUsage > thresholds.cpu) {
+      thresholdAlerts.push({
+        id: `${a.id}-cpu`,
+        agentId: a.id,
+        agentName: a.name,
+        metric: 'cpu',
+        value: a.cpuUsage,
+        threshold: thresholds.cpu,
+        severity: 'high',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    if (a.ramUsage > thresholds.ram) {
+      thresholdAlerts.push({
+        id: `${a.id}-ram`,
+        agentId: a.id,
+        agentName: a.name,
+        metric: 'ram',
+        value: a.ramUsage,
+        threshold: thresholds.ram,
+        severity: 'high',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    if (maxDisk > thresholds.disk) {
+      thresholdAlerts.push({
+        id: `${a.id}-disk`,
+        agentId: a.id,
+        agentName: a.name,
+        metric: 'disk',
+        value: maxDisk,
+        threshold: thresholds.disk,
+        severity: 'medium',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return {
+      agentId: a.id,
+      agentName: a.name,
+      cpuPercent: a.cpuUsage,
+      ramPercent: a.ramUsage,
+      disks: (a.disks || []).map((d) => ({
+        mount: d.mount,
+        usedPercent: d.used,
+        totalGb: d.total,
+      })),
+      maxDiskPercent: maxDisk,
+      uptimeSeconds: a.uptime,
+      loadAverage: [1.2, 0.9, 0.7],
+      scanTime: new Date().toISOString(),
+      source: 'syscollector',
+      cpuModel: a.cpuModel,
+      ramTotalMb: a.ramTotal,
+      network: a.network,
+      thresholdAlerts,
+      history: [
+        { t: new Date().toISOString(), cpu: a.cpuUsage, ram: a.ramUsage, diskMax: maxDisk },
+      ],
+    };
+  });
+
+  const alerts = agentMetrics.flatMap((m) => m.thresholdAlerts);
+
+  return {
+    thresholds,
+    agents: agentMetrics,
+    alerts,
+    summary: {
+      totalAgents: agentMetrics.length,
+      agentsOverThreshold: agentMetrics.filter((m) => m.thresholdAlerts.length > 0).length,
+      lastPollAt: new Date().toISOString(),
+    },
+  };
+}
+
 function getAIContext() {
   return {
     agents: agents.map((a) => ({
@@ -422,6 +513,7 @@ module.exports = {
   getAgentById,
   getAgentProcesses,
   getAgentStats,
+  getMetrics,
   generateCompliance,
   getVulnStats,
   getAIContext,

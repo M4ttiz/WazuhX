@@ -46,6 +46,14 @@ export function IconFim() {
   );
 }
 
+export function IconMetrics() {
+  return (
+    <svg {...iconProps} viewBox="0 0 24 24">
+      <path d="M18 20V10M12 20V4M6 20v-6" />
+    </svg>
+  );
+}
+
 export function IconCompliance() {
   return (
     <svg {...iconProps} viewBox="0 0 24 24">
@@ -88,6 +96,7 @@ export const NAV_ICONS = {
   alerts: IconAlerts,
   vulnerabilities: IconVulnerabilities,
   fim: IconFim,
+  metrics: IconMetrics,
   compliance: IconCompliance,
   ai: IconAi,
   reports: IconReports,
