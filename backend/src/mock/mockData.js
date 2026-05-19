@@ -491,7 +491,7 @@ function getRealtimeMetrics(agentId) {
   if (!agent) return null;
 
   const jitter = () => Math.floor(Math.random() * 6) - 3;
-  const maxDisk = Math.max(...(agent.disks || []).map((d) => d.used), 0);
+  const ioJitter = () => Math.floor(Math.random() * 400) - 200;
 
   return {
     agentId: agent.id,
@@ -499,9 +499,12 @@ function getRealtimeMetrics(agentId) {
     hostIp: agent.ip,
     cpu: Math.min(100, Math.max(0, agent.cpuUsage + jitter())),
     ram: Math.min(100, Math.max(0, agent.ramUsage + jitter())),
-    disk: Math.min(100, Math.max(0, maxDisk + jitter())),
+    disk: Math.max(0, 1200 + ioJitter()),
+    diskUnit: 'KiB/s',
+    diskMetric: 'io',
     timestamp: Date.now(),
     reachable: true,
+    partial: false,
     source: 'netdata',
   };
 }

@@ -28,6 +28,10 @@ describe('WazuhX API', () => {
     expect(typeof res.body.cpu).toBe('number');
     expect(typeof res.body.ram).toBe('number');
     expect(typeof res.body.disk).toBe('number');
+    expect(res.body.diskMetric).toBe('io');
+    expect(res.body.diskUnit).toBe('KiB/s');
+    expect(res.body.source).toBe('netdata');
+    expect(res.body.partial).toBe(false);
     expect(res.body.reachable).toBe(true);
     expect(res.body.timestamp).toBeDefined();
     expect(res.headers['x-data-source']).toBe('mock');

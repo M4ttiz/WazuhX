@@ -13,7 +13,7 @@
 - Real-time security dashboard (KPI, MITRE heatmap, alert trends)
 - Agent resource metrics (CPU, RAM, disk, uptime, load) with threshold alerts
 - Fleet **Metriche** page and per-agent **Risorse** tab (syscollector + optional script)
-- **Netdata** live CPU/RAM/disk on agent detail (tab Risorse) via `GET /api/metrics/realtime/:id`
+- **Netdata** live CPU/RAM/disk **I/O** on agent detail and fleet Metriche via `GET /api/metrics/realtime/:id` (syscollector fallback)
 - Alert management with MITRE mapping and CSV export
 - Vulnerability (CVE) tracking with NVD links
 - File Integrity Monitoring (FIM)
@@ -89,8 +89,9 @@ Frontend: http://localhost:5173 (proxies `/api` → backend :3001)
 | `METRICS_CACHE_TTL_SECONDS` | Metrics API cache | `30` |
 | `NETDATA_PORT` | Netdata HTTP port on agent hosts | `19999` |
 | `NETDATA_SCHEME` | `http` or `https` | `http` |
-| `NETDATA_TIMEOUT_MS` | Netdata request timeout | `3000` |
+| `NETDATA_TIMEOUT_MS` | Netdata request timeout | `2500` |
 | `NETDATA_ENABLED` | Disable Netdata calls | `true` |
+| `REALTIME_METRICS_CACHE_TTL_MS` | Cache for `GET /metrics/realtime/:id` (ms, max 5000) | `2000` |
 | `PORT` | Backend port | `3001` |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | Allow self-signed Wazuh certs | `0` (Docker) |
 
@@ -108,12 +109,13 @@ Ensure `wazuh-manager` hostname resolves inside the network.
 
 ## Netdata (real-time performance)
 
-WazuhX uses Wazuh for **security** data and optional **Netdata** on each agent host for **live** CPU, RAM, and disk usage.
+WazuhX uses Wazuh for **security** data and optional **Netdata** on each agent host for **live** CPU, RAM, and **disk I/O** (combined read+write rate from chart `system.io`, units from Netdata such as KiB/s).
 
 1. Install Netdata on agents and expose port **19999** (listen on `0.0.0.0` or a reachable interface).
-2. The backend reads the agent **IP** from Wazuh (`GET /api/agents/:id`) and calls `{NETDATA_SCHEME}://{ip}:{NETDATA_PORT}/api/v1/data`.
+2. The backend reads the agent **IP** from Wazuh (`GET /api/agents/:id`) and calls `{NETDATA_SCHEME}://{ip}:{NETDATA_PORT}/api/v1/data` in parallel for **`system.cpu`** (sum of busy states: user, system, nice, irq, softirq, steal), **`system.ram`** (used vs used+available+cached+buffers), and **`system.io`** (reads+writes or in+out).
 3. The **WazuhX backend** must route to that IP (same LAN/VPN, or host networking). NAT-only addresses often fail from Docker.
-4. Tune `NETDATA_*` in `.env`. Refresh interval for the UI: **Settings** → Netdata / metriche live (ms).
+4. If Netdata is down or incomplete, **`GET /api/metrics/realtime/:id`** falls back to **syscollector** for missing fields (`source`: `netdata`, `wazuh`, or `mixed`; `partial` when Netdata returned only some charts). Disk in fallback mode is **max mount usage %**, not I/O — the JSON includes `diskMetric`: `io` or `capacity` and `diskUnit`.
+5. Tune `NETDATA_*` and `REALTIME_METRICS_CACHE_TTL_MS` in `.env`. Refresh interval for the UI: **Settings** → Netdata / metriche live (ms). Fleet Metriche staggers requests per agent (~200 ms) to reduce load.
 
 ## API Endpoints
 
@@ -128,7 +130,7 @@ WazuhX uses Wazuh for **security** data and optional **Netdata** on each agent h
 | GET | `/api/fim` | FIM events |
 | GET | `/api/compliance` | SCA/compliance |
 | GET | `/api/metrics` | Agent CPU/RAM/disk metrics (`?agentId=`) |
-| GET | `/api/metrics/realtime/:agentId` | Live Netdata snapshot (CPU, RAM, disk %) |
+| GET | `/api/metrics/realtime/:agentId` | Live snapshot: Netdata-first CPU/RAM/disk I/O + syscollector fallback (`source`, `diskMetric`) |
 | POST | `/api/ai/briefing` | AI executive briefing |
 | POST | `/api/ai/chat` | AI chat |
 | POST | `/api/reports/generate` | PDF/HTML report |

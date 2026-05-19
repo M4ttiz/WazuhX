@@ -112,15 +112,26 @@ async function getAgentStatsLegacy(id) {
     return { data: mock.getAgentStats(id), source: 'mock' };
   }
 
-  const payload = await getMetrics(id);
+  const realtimeMetricsService = require('./realtimeMetricsService');
+  const [payload, rt] = await Promise.all([
+    getMetrics(id),
+    realtimeMetricsService.getRealtimeMetricsForAgent(id),
+  ]);
+
   const metrics = payload.agents?.[0];
   if (!metrics) {
     return { data: {}, source: 'wazuh' };
   }
 
+  const legacy = metricsToLegacyStats(metrics);
+  if (rt.data && !rt.notFound) {
+    if (rt.data.cpu != null) legacy.cpuUsage = rt.data.cpu;
+    if (rt.data.ram != null) legacy.ramUsage = rt.data.ram;
+  }
+
   return {
-    data: metricsToLegacyStats(metrics),
-    source: 'wazuh',
+    data: legacy,
+    source: rt.data?.source || payload.source || 'wazuh',
   };
 }
 
@@ -128,4 +139,6 @@ module.exports = {
   getMetrics,
   getAgentStatsLegacy,
   getThresholds,
+  fetchAgentSyscollector,
+  normalizeAgentMetrics,
 };

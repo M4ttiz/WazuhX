@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
-import GaugeChart from '../components/GaugeChart';
 import AlertTable from '../components/AlertTable';
 import SeverityBadge from '../components/SeverityBadge';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
@@ -19,12 +18,12 @@ export default function AgentDetail() {
   const [tab, setTab] = useState('Overview');
   const [analysis, setAnalysis] = useState('');
   const { analyzeAgent, loading: aiLoading } = useAI();
-  const statsInterval = getRefreshInterval('agent-stats', 30000);
+  const resourcesSyscollectorInterval = getRefreshInterval('agent-resources', 60000);
 
   const { data: agent, loading } = useWazuh(`/agents/${id}`);
   const { data: metricsPayload, loading: metricsLoading, refetch: refetchMetrics } = useWazuh('/metrics', {
     params: { agentId: id },
-    refreshInterval: tab === 'Risorse' ? statsInterval : null,
+    refreshInterval: tab === 'Risorse' ? resourcesSyscollectorInterval : null,
     skip: tab !== 'Risorse',
   });
   const agentMetrics = metricsPayload?.agents?.[0];
@@ -118,16 +117,8 @@ export default function AgentDetail() {
               </p>
               <div className="flex justify-end">
                 <button type="button" className="btn-secondary text-sm" onClick={refetchMetrics}>
-                  Aggiorna (syscollector)
+                  Aggiorna soglie / syscollector
                 </button>
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="card flex justify-center">
-                  <GaugeChart value={stats.cpuUsage} label="CPU" />
-                </div>
-                <div className="card flex justify-center">
-                  <GaugeChart value={stats.ramUsage} label="RAM" />
-                </div>
               </div>
               <div className="card">
                 <p className="card-title">Disk</p>

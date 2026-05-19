@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
@@ -10,8 +11,32 @@ import {
 } from 'recharts';
 import { chartTooltipStyle, chartAxisProps, chartGridProps } from '../utils/chartTheme';
 
-function AgentMetricsCard({ agent, thresholds }) {
+const FLEET_STAGGER_MS = 200;
+
+function AgentMetricsCard({ agent, thresholds, staggerIndex }) {
+  const [rtEnabled, setRtEnabled] = useState(false);
+  const rtInterval = getRefreshInterval('realtime', 2500);
+
+  useEffect(() => {
+    const t = setTimeout(() => setRtEnabled(true), staggerIndex * FLEET_STAGGER_MS);
+    return () => clearTimeout(t);
+  }, [staggerIndex]);
+
+  const {
+    data: rt,
+    error: rtError,
+  } = useWazuh(`/metrics/realtime/${agent.agentId}`, {
+    skip: !rtEnabled,
+    refreshInterval: rtEnabled ? rtInterval : null,
+  });
+
   const hasAlert = (agent.thresholdAlerts?.length || 0) > 0;
+  const diskIo = rt?.diskMetric === 'io';
+  const diskUnit = rt?.diskUnit || (diskIo ? 'KiB/s' : '%');
+
+  const cpuVal = rt?.cpu ?? null;
+  const ramVal = rt?.ram ?? null;
+  const diskVal = rt?.disk ?? null;
 
   return (
     <div className={`card ${hasAlert ? 'border-danger' : ''}`}>
@@ -21,6 +46,15 @@ function AgentMetricsCard({ agent, thresholds }) {
             {agent.agentName}
           </Link>
           <p className="text-xs text-muted mt-1">{formatMetricsSource(agent.source, agent.scanTime)}</p>
+          {rtEnabled && rt && (
+            <p className="text-xs text-muted mt-0.5">
+              Live: {rt.source === 'wazuh' ? 'Syscollector' : rt.source}
+              {rt.partial ? ' · parziale' : ''}
+            </p>
+          )}
+          {rtEnabled && rtError && (
+            <p className="text-xs text-danger mt-0.5">Live: {String(rtError)}</p>
+          )}
         </div>
         {hasAlert && (
           <span className="text-xs font-medium text-danger bg-[rgba(220,38,38,0.12)] px-2 py-1 rounded">
@@ -30,12 +64,22 @@ function AgentMetricsCard({ agent, thresholds }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-        <ResourceMetricCard label="CPU" value={agent.cpuPercent} threshold={thresholds?.cpu ?? 90} />
-        <ResourceMetricCard label="RAM" value={agent.ramPercent} threshold={thresholds?.ram ?? 90} />
         <ResourceMetricCard
-          label="Disco (max)"
-          value={agent.maxDiskPercent}
+          label="CPU"
+          value={cpuVal != null ? cpuVal : agent.cpuPercent}
+          threshold={thresholds?.cpu ?? 90}
+        />
+        <ResourceMetricCard
+          label="RAM"
+          value={ramVal != null ? ramVal : agent.ramPercent}
+          threshold={thresholds?.ram ?? 90}
+        />
+        <ResourceMetricCard
+          label={diskIo ? 'Disk I/O' : 'Disco (max)'}
+          value={diskVal != null ? diskVal : agent.maxDiskPercent}
           threshold={thresholds?.disk ?? 85}
+          unit={diskIo ? diskUnit : '%'}
+          showBar={!diskIo}
         />
       </div>
 
@@ -69,7 +113,7 @@ function AgentMetricsCard({ agent, thresholds }) {
 
       {agent.history?.length > 1 && (
         <div>
-          <p className="card-title">Trend recente</p>
+          <p className="card-title">Trend recente (syscollector)</p>
           <ResponsiveContainer width="100%" height={120}>
             <AreaChart data={agent.history}>
               <CartesianGrid {...chartGridProps} />
@@ -104,7 +148,7 @@ export default function Metrics() {
       <div>
         <h1 className="text-xl font-semibold text-primary">Metriche risorse</h1>
         <p className="text-secondary text-sm mt-1">
-          CPU, RAM e disco per agente — syscollector Wazuh e script opzionale per dati in tempo reale.
+          Prestazioni live (Netdata, ~2–3s) per CPU/RAM/disk I/O; capacità dischi, uptime e alert da syscollector.
         </p>
       </div>
 
@@ -118,8 +162,13 @@ export default function Metrics() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {agents.map((agent) => (
-          <AgentMetricsCard key={agent.agentId} agent={agent} thresholds={thresholds} />
+        {agents.map((agent, index) => (
+          <AgentMetricsCard
+            key={agent.agentId}
+            agent={agent}
+            thresholds={thresholds}
+            staggerIndex={index}
+          />
         ))}
       </div>
 
