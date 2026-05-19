@@ -13,6 +13,8 @@ router.get('/', async (req, res, next) => {
       severityMin: req.query.severityMin,
       severityMax: req.query.severityMax,
       mitreTactic: req.query.mitreTactic,
+      ruleGroup: req.query.ruleGroup,
+      severity: req.query.severity,
       search: req.query.search,
       from: req.query.from,
       to: req.query.to,
@@ -31,6 +33,25 @@ router.get('/overview', async (req, res, next) => {
   try {
     const key = getCacheKey('overview', {});
     const result = await withCache(req, res, key, liveTtl, () => wazuh.getOverview());
+    sendData(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/timeline', async (req, res, next) => {
+  try {
+    const filters = {
+      agentId: req.query.agentId,
+      severity: req.query.severity,
+      severityMin: req.query.severityMin,
+      severityMax: req.query.severityMax,
+      from: req.query.from,
+      to: req.query.to,
+      interval: req.query.interval,
+    };
+    const key = getCacheKey('alerts-timeline', filters);
+    const result = await withCache(req, res, key, liveTtl, () => wazuh.getAlertsTimeline(filters));
     sendData(res, result);
   } catch (err) {
     next(err);

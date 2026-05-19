@@ -191,6 +191,7 @@ function normalizeVulnerability(v, agentId, agentName) {
     severity,
     hasFix: Boolean(v.fix_version || v.patch),
     detectedAt: v.detected_at || v.published || new Date().toISOString(),
+    description: v.description || v.title || '',
   };
 }
 
@@ -394,11 +395,37 @@ async function getAlerts(filters = {}) {
   };
 }
 
+async function getAlertsTimeline(filters = {}) {
+  if (useMock) {
+    const buckets = {};
+    mock.alerts.forEach((a) => {
+      const day = a.timestamp.slice(0, 10);
+      buckets[day] = (buckets[day] || 0) + 1;
+    });
+    return {
+      data: Object.entries(buckets).map(([date, count]) => ({ date, count })),
+      source: 'mock',
+    };
+  }
+  if (indexer.isConfigured()) {
+    const timeline = await indexer.getAlertsTimeline(filters);
+    if (timeline) return { ...timeline, source: 'wazuh' };
+  }
+  return { data: [], source: 'wazuh' };
+}
+
 async function getVulnerabilities(agentId) {
   if (useMock) {
     let vulns = mock.vulnerabilities;
     if (agentId) vulns = vulns.filter((v) => v.agentId === String(agentId));
     return { data: vulns, stats: mock.getVulnStats(), source: 'mock' };
+  }
+
+  if (indexer.isConfigured()) {
+    const fromIndexer = await indexer.getVulnerabilities(agentId);
+    if (fromIndexer?.length) {
+      return { data: fromIndexer, stats: computeVulnStats(fromIndexer), source: 'wazuh' };
+    }
   }
 
   const allVulns = [];
@@ -409,14 +436,10 @@ async function getVulnerabilities(agentId) {
   for (const agent of agents) {
     const raw = await wazuhRequest(`/vulnerability/${formatAgentId(agent.id)}`);
     const items = raw?.affected_items || [];
-    items.forEach((v) => allVulns.push(normalizeVulnerability(v, agent.id, agent.name)));
-  }
-
-  if (allVulns.length === 0 && indexer.isConfigured()) {
-    const fromIndexer = await indexer.getVulnerabilities(agentId);
-    if (fromIndexer?.length) {
-      return { data: fromIndexer, stats: computeVulnStats(fromIndexer), source: 'wazuh' };
+    if (!items.length) {
+      console.warn(`Wazuh API: [/vulnerability/${agent.id}] empty affected_items`);
     }
+    items.forEach((v) => allVulns.push(normalizeVulnerability(v, agent.id, agent.name)));
   }
 
   if (allVulns.length === 0 && agents.length === 0) {
@@ -637,6 +660,7 @@ module.exports = {
   getAgentStats,
   getAgentProcesses,
   getAlerts,
+  getAlertsTimeline,
   getVulnerabilities,
   getFim,
   getCompliance,

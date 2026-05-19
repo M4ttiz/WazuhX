@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
@@ -13,6 +13,121 @@ import {
 import { chartTooltipStyle, chartAxisProps, chartGridProps } from '../utils/chartTheme';
 
 const FLEET_STAGGER_MS = 200;
+const NETDATA_RANGES = [
+  { id: '5m', label: '5 min' },
+  { id: '15m', label: '15 min' },
+  { id: '1h', label: '1 ora' },
+  { id: '6h', label: '6 ore' },
+  { id: '24h', label: '24 ore' },
+];
+const NETDATA_CHARTS = [
+  { key: 'system.cpu', label: 'CPU %', color: '#2563eb' },
+  { key: 'system.ram', label: 'RAM %', color: '#16a34a' },
+  { key: 'system.net', label: 'Network', color: '#0891b2' },
+];
+
+function NetdataTimeSeriesPanel({ agents }) {
+  const [agentId, setAgentId] = useState('');
+  const [range, setRange] = useState('1h');
+
+  useEffect(() => {
+    if (!agentId && agents?.length) setAgentId(agents[0].agentId);
+  }, [agents, agentId]);
+
+  const refreshMs = getRefreshInterval('realtime', 5000);
+  const { data, error, loading } = useWazuh('/metrics/netdata/series', {
+    params: {
+      agentId,
+      range,
+      charts: NETDATA_CHARTS.map((c) => c.key).join(','),
+    },
+    skip: !agentId,
+    refreshInterval: agentId ? refreshMs : null,
+  });
+
+  const series = data?.series || {};
+  const unreachable = error || (data && data.reachable === false);
+
+  const chartData = useMemo(() => {
+    const cpu = series['system.cpu'];
+    if (!cpu?.labels?.length) return [];
+    return cpu.labels.map((label, i) => {
+      const point = { t: label };
+      NETDATA_CHARTS.forEach((c) => {
+        const s = series[c.key];
+        point[c.key] = s?.data?.[0]?.[i] ?? null;
+      });
+      return point;
+    });
+  }, [series]);
+
+  if (!agents?.length) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <NetdataPanelHeader
+          agents={agents}
+          agentId={agentId}
+          setAgentId={setAgentId}
+          range={range}
+          setRange={setRange}
+        />
+        {unreachable && (
+          <div className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            Netdata non raggiungibile per questo agente. Verifica che la porta 19999 sia aperta e NETDATA_* configurato.
+            {error ? ` (${error})` : ''}
+          </div>
+        )}
+        {loading && !chartData.length ? (
+          <div className="skeleton h-48" />
+        ) : chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={chartData}>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="t" hide />
+              <YAxis domain={[0, 100]} {...chartAxisProps} width={36} />
+              <Tooltip contentStyle={chartTooltipStyle} />
+              {NETDATA_CHARTS.map((c) => (
+                <Area
+                  key={c.key}
+                  type="monotone"
+                  dataKey={c.key}
+                  stroke={c.color}
+                  fill={c.color}
+                  fillOpacity={0.12}
+                  name={c.label}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-muted">Nessuna serie temporale disponibile.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NetdataPanelHeader({ agents, agentId, setAgentId, range, setRange }) {
+  return (
+    <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
+      <p className="card-title mb-0">Serie temporali Netdata</p>
+      <div className="flex flex-wrap gap-2">
+        <select className="select text-sm" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+          {agents.map((a) => (
+            <option key={a.agentId} value={a.agentId}>{a.agentName}</option>
+          ))}
+        </select>
+        <select className="select text-sm" value={range} onChange={(e) => setRange(e.target.value)}>
+          {NETDATA_RANGES.map((r) => (
+            <option key={r.id} value={r.id}>{r.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
 
 function AgentMetricsCard({ agent, thresholds, staggerIndex }) {
   const [rtEnabled, setRtEnabled] = useState(false);
@@ -152,6 +267,8 @@ export default function Metrics() {
       />
 
       <ThresholdAlertBanner alerts={alerts} />
+
+      <NetdataTimeSeriesPanel agents={agents} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Agenti monitorati" value={summary.totalAgents} variant="info" loading={loading} />

@@ -233,6 +233,54 @@ async function getRealtimeMetrics(hostIp) {
   };
 }
 
+function parseSeriesFromChart(chartResponse, parser) {
+  const rows = chartResponse?.data;
+  const labels = chartResponse?.labels || [];
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  return rows.map((row, i) => ({
+    time: row[0] != null ? row[0] : i,
+    value: parser ? parser({ data: [row], labels }) : row[1],
+  }));
+}
+
+async function getChartSeries(hostIp, chart, { after = -3600, points = 60 } = {}) {
+  const res = await fetchChartSafe(hostIp, chart, {
+    points,
+    after,
+    group: 'average',
+  });
+  if (!res.ok) return { ok: false, error: res.error, data: [] };
+
+  const parsers = {
+    'system.cpu': (r) => parseCpuBusySum(r),
+    'system.ram': (r) => parseRamPercent(r),
+    'system.io': (r) => parseDiskIoSum(r),
+    'system.net': (r) => {
+      const row = lastRow(r);
+      const labels = r?.labels || [];
+      if (!row) return 0;
+      const lower = labels.map((l) => String(l).toLowerCase());
+      const rx = lower.indexOf('received');
+      const tx = lower.indexOf('sent');
+      return (Number(row[rx]) || 0) + (Number(row[tx]) || 0);
+    },
+    'system.load': (r) => {
+      const row = lastRow(r);
+      return row ? Number(row[1]) || 0 : 0;
+    },
+  };
+
+  const parser = parsers[chart];
+  const rows = res.data?.data || [];
+  const labels = res.data?.labels || [];
+  const series = rows.map((row) => ({
+    time: row[0],
+    value: parser ? parser({ data: [row], labels }) : row[1],
+  }));
+
+  return { ok: true, data: series, units: chartUnits(res.data) };
+}
+
 module.exports = {
   isEnabled,
   buildBaseUrl,
@@ -241,6 +289,7 @@ module.exports = {
   parseCpuBusySum,
   parseRamPercent,
   parseDiskIoSum,
+  getChartSeries,
   getRealtimeMetrics,
   config,
 };

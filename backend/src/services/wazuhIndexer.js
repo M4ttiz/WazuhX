@@ -53,12 +53,24 @@ function levelToSeverity(level) {
   return 'low';
 }
 
+function extractMitreFields(mitre) {
+  if (!mitre) return { mitreTechnique: '', mitreTechniqueName: '', mitreTactic: '' };
+  const entry = Array.isArray(mitre) ? mitre[0] : mitre;
+  return {
+    mitreTechnique: entry?.id || '',
+    mitreTechniqueName: entry?.technique || entry?.name || '',
+    mitreTactic: entry?.tactic || '',
+  };
+}
+
 function normalizeAlert(hit) {
   const src = hit._source || {};
   const rule = src.rule || {};
   const agent = src.agent || {};
   const level = rule.level || 0;
-  return {
+  const sev = levelToSeverity(level);
+  const mitreFields = extractMitreFields(rule.mitre);
+  const base = {
     id: hit._id || `${agent.id}-${src.timestamp}`,
     timestamp: src.timestamp || src['@timestamp'],
     agentId: String(agent.id || ''),
@@ -66,11 +78,16 @@ function normalizeAlert(hit) {
     ruleId: String(rule.id || ''),
     ruleDescription: rule.description || 'Unknown',
     level,
-    severity: levelToSeverity(level),
+    severity: level,
+    severityLabel: sev,
     groups: rule.groups || [],
     mitre: rule.mitre || null,
     fullLog: src.full_log || null,
+    description: rule.description || 'Unknown',
+    rawLog: src.full_log || null,
+    ...mitreFields,
   };
+  return base;
 }
 
 function normalizeIndexerVuln(hit) {
@@ -101,7 +118,8 @@ function normalizeIndexerVuln(hit) {
     cvss: vuln.score?.base || vuln.cvss?.score || 0,
     severity,
     hasFix: Boolean(vuln.fix_version),
-    detectedAt: src.detected_at || new Date().toISOString(),
+    detectedAt: src.detected_at || src['@timestamp'] || new Date().toISOString(),
+    description: vuln.description || vuln.title || pkg.description || '',
   };
 }
 
@@ -121,7 +139,9 @@ function normalizeFimFromAlert(src) {
     size: syscheck.size_after || syscheck.size || 0,
     permissions: syscheck.perm_after || syscheck.permissions || null,
     user: syscheck.uname_after || syscheck.user || 'unknown',
-    critical: ['/etc/passwd', '/etc/shadow', '/etc/sudoers'].some((p) => path.includes(p)),
+    critical: ['/etc/', '/bin/', '/usr/bin/', '/sbin/', '/usr/sbin/', 'cron'].some((p) =>
+      path.includes(p)
+    ),
     md5Before: syscheck.md5_before || null,
     md5After: syscheck.md5_after || null,
     sha256Before: syscheck.sha256_before || null,
@@ -129,10 +149,7 @@ function normalizeFimFromAlert(src) {
   };
 }
 
-async function getAlerts(filters = {}) {
-  const page = parseInt(filters.page, 10) || 1;
-  const limit = Math.min(parseInt(filters.limit, 10) || 25, 100);
-  const from = (page - 1) * limit;
+function buildAlertQueryMust(filters = {}) {
   const must = [];
 
   if (filters.agentId) {
@@ -144,9 +161,30 @@ async function getAlerts(filters = {}) {
       high: { gte: 10, lt: 12 },
       medium: { gte: 7, lt: 10 },
       low: { lt: 7 },
+      info: { lt: 4 },
     };
     const r = ranges[filters.severity.toLowerCase()];
     if (r) must.push({ range: { 'rule.level': r } });
+  }
+  if (filters.severityMin != null && filters.severityMin !== '') {
+    must.push({ range: { 'rule.level': { gte: parseInt(filters.severityMin, 10) } } });
+  }
+  if (filters.severityMax != null && filters.severityMax !== '') {
+    must.push({ range: { 'rule.level': { lte: parseInt(filters.severityMax, 10) } } });
+  }
+  if (filters.from || filters.to) {
+    const range = {};
+    if (filters.from) range.gte = filters.from;
+    if (filters.to) range.lte = filters.to;
+    must.push({ range: { '@timestamp': range } });
+  }
+  if (filters.mitreTactic) {
+    must.push({
+      wildcard: { 'rule.mitre.tactic': `*${filters.mitreTactic}*` },
+    });
+  }
+  if (filters.ruleGroup) {
+    must.push({ term: { 'rule.groups': filters.ruleGroup } });
   }
   if (filters.search) {
     must.push({
@@ -157,6 +195,14 @@ async function getAlerts(filters = {}) {
       },
     });
   }
+  return must;
+}
+
+async function getAlerts(filters = {}) {
+  const page = parseInt(filters.page, 10) || 1;
+  const limit = Math.min(parseInt(filters.limit, 10) || 25, 100);
+  const from = (page - 1) * limit;
+  const must = buildAlertQueryMust(filters);
 
   const result = await search('wazuh-alerts-*', {
     from,
@@ -389,10 +435,37 @@ function getStatus() {
   };
 }
 
+async function getAlertsTimeline(filters = {}) {
+  const must = buildAlertQueryMust(filters);
+  const interval = filters.interval || '1h';
+  const result = await search('wazuh-alerts-*', {
+    size: 0,
+    query: must.length ? { bool: { must } } : { match_all: {} },
+    aggs: {
+      over_time: {
+        date_histogram: {
+          field: '@timestamp',
+          fixed_interval: interval,
+          min_doc_count: 0,
+        },
+      },
+    },
+  });
+
+  if (!result?.aggregations?.over_time?.buckets) return null;
+  return {
+    data: result.aggregations.over_time.buckets.map((b) => ({
+      date: b.key_as_string || new Date(b.key).toISOString(),
+      count: b.doc_count,
+    })),
+  };
+}
+
 module.exports = {
   isConfigured,
   formatAgentId,
   getAlerts,
+  getAlertsTimeline,
   getVulnerabilities,
   getFimEvents,
   getAlertOverview,

@@ -23,6 +23,15 @@ export default function ReportGenerator() {
     format: 'pdf',
   });
   const [generating, setGenerating] = useState(false);
+  const [progressStep, setProgressStep] = useState(null);
+
+  const PROGRESS_STEPS = [
+    'Recupero overview...',
+    'Aggregazione alert...',
+    'Lettura agenti e CVE...',
+    'Compliance e metriche...',
+    'Generazione documento...',
+  ];
 
   const toggleSection = (id) => {
     setForm((f) => ({
@@ -35,6 +44,10 @@ export default function ReportGenerator() {
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setProgressStep(0);
+    const timers = PROGRESS_STEPS.map((_, i) =>
+      setTimeout(() => setProgressStep(i), i * 800)
+    );
     try {
       await apiDownload('/reports/generate', {
         period: form.period,
@@ -47,7 +60,9 @@ export default function ReportGenerator() {
     } catch (err) {
       toast(err.message, 'error');
     } finally {
+      timers.forEach(clearTimeout);
       setGenerating(false);
+      setProgressStep(null);
     }
   };
 
@@ -144,6 +159,18 @@ export default function ReportGenerator() {
             </select>
           </label>
         </div>
+
+        {generating && progressStep != null && (
+          <div className="space-y-2">
+            <div className="h-2 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-300"
+                style={{ width: `${((progressStep + 1) / PROGRESS_STEPS.length) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted">{PROGRESS_STEPS[progressStep]}</p>
+          </div>
+        )}
 
         <button
           type="button"

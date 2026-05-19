@@ -1,6 +1,6 @@
 const wazuh = require('./wazuhClient');
+const metricsService = require('./metricsService');
 const gemini = require('./geminiService');
-const mock = require('../mock/mockData');
 
 function escapeHtml(str) {
   return String(str)
@@ -16,6 +16,70 @@ function priorityBadge(p) {
   return `<span style="color:${colors[p] || colors.normal}">● ${labels[p] || p}</span>`;
 }
 
+function periodToDateRange(period) {
+  const now = new Date();
+  let days = 7;
+  const p = String(period || '').toLowerCase();
+  if (p.includes('oggi') || p.includes('today')) days = 1;
+  else if (p.includes('30')) days = 30;
+  const from = new Date(now);
+  from.setDate(from.getDate() - days);
+  return { from: from.toISOString(), to: now.toISOString() };
+}
+
+function filterByAgentIds(items, field, selectedAgents) {
+  if (!selectedAgents || selectedAgents === 'all') return items;
+  const ids = Array.isArray(selectedAgents) ? selectedAgents.map(String) : [String(selectedAgents)];
+  return items.filter((item) => ids.includes(String(item[field])));
+}
+
+async function loadReportData(options) {
+  const { period, sections, agents: selectedAgents } = options;
+  const range = periodToDateRange(period);
+
+  const overviewRes = await wazuh.getOverview();
+  const overview = overviewRes?.data || overviewRes;
+
+  let alertRows = [];
+  if (sections.includes('alerts')) {
+    const alertsRes = await wazuh.getAlerts({ ...range, page: 1, limit: 100 });
+    alertRows = filterByAgentIds(alertsRes?.data || [], 'agentId', selectedAgents);
+  }
+
+  let agentRows = [];
+  if (sections.includes('agents')) {
+    const agentsRes = await wazuh.getAgents();
+    agentRows = filterByAgentIds(agentsRes?.data || [], 'id', selectedAgents);
+  }
+
+  let vulns = [];
+  let vulnStats = { total: 0 };
+  if (sections.includes('vulnerabilities')) {
+    const vulnRes = await wazuh.getVulnerabilities();
+    vulns = filterByAgentIds(vulnRes?.data || [], 'agentId', selectedAgents);
+    vulnStats = vulnRes?.stats || { total: vulns.length };
+  }
+
+  let compliance = [];
+  if (sections.includes('compliance')) {
+    const compRes = await wazuh.getCompliance('cis');
+    compliance = filterByAgentIds(compRes?.data || [], 'agentId', selectedAgents);
+  }
+
+  let fimEvents = [];
+  if (sections.includes('fim')) {
+    const fimRes = await wazuh.getFim(range);
+    fimEvents = filterByAgentIds(fimRes?.data || [], 'agentId', selectedAgents);
+  }
+
+  let metrics = null;
+  if (sections.includes('overview') || sections.includes('metrics')) {
+    metrics = await metricsService.getMetrics();
+  }
+
+  return { overview, alertRows, agentRows, vulns, vulnStats, compliance, fimEvents, metrics };
+}
+
 async function buildReportHtml(options) {
   const {
     period = '7 giorni',
@@ -24,10 +88,11 @@ async function buildReportHtml(options) {
     agents: selectedAgents = 'all',
   } = options;
 
-  const overview = mock.getOverview();
-  const vulnStats = mock.getVulnStats();
-  const compliance = mock.generateCompliance('cis');
+  const { overview, alertRows, agentRows, vulns, vulnStats, compliance } =
+    await loadReportData({ period, sections, agents: selectedAgents });
+
   const lang = language === 'en' ? 'en' : 'it';
+  const kpis = overview?.kpis || {};
 
   let executiveSummary = 'Report generato automaticamente da WazuhX.';
   let recommendations = [];
@@ -44,6 +109,7 @@ async function buildReportHtml(options) {
 
   const title = lang === 'it' ? 'Report di Sicurezza WazuhX' : 'WazuhX Security Report';
   const date = new Date().toLocaleString(lang === 'it' ? 'it-IT' : 'en-US');
+  const periodLabel = lang === 'it' ? 'Periodo' : 'Period';
 
   const recsHtml = recommendations
     .map(
@@ -79,7 +145,7 @@ async function buildReportHtml(options) {
   <div class="cover">
     <h1>${title}</h1>
     <p class="meta">${date}</p>
-    <p class="meta">${lang === 'it' ? 'Periodo' : 'Period'}: ${escapeHtml(period)}</p>
+    <p class="meta">${periodLabel}: ${escapeHtml(period)}</p>
     <div class="classification">CONFIDENTIAL</div>
   </div>
 
@@ -101,40 +167,40 @@ async function buildReportHtml(options) {
 
   <h2>KPI Overview</h2>
   <div class="kpi-grid">
-    <div class="kpi"><div class="value">${overview.kpis.totalAlerts}</div><div>Total Alerts</div></div>
-    <div class="kpi"><div class="value">${overview.kpis.criticalAlerts}</div><div>Critical</div></div>
-    <div class="kpi"><div class="value">${overview.kpis.agentsOnline}</div><div>Online</div></div>
-    <div class="kpi"><div class="value">${vulnStats.total}</div><div>CVE</div></div>
-    <div class="kpi"><div class="value">${overview.kpis.avgCompliance}%</div><div>Compliance</div></div>
-    <div class="kpi"><div class="value">${overview.kpis.threatsBlocked}</div><div>Blocked</div></div>
+    <div class="kpi"><div class="value">${kpis.totalAlerts ?? 0}</div><div>Total Alerts</div></div>
+    <div class="kpi"><div class="value">${kpis.criticalAlerts ?? 0}</div><div>Critical</div></div>
+    <div class="kpi"><div class="value">${kpis.agentsOnline ?? 0}</div><div>Online</div></div>
+    <div class="kpi"><div class="value">${vulnStats.total ?? 0}</div><div>CVE</div></div>
+    <div class="kpi"><div class="value">${kpis.avgCompliance ?? 0}%</div><div>Compliance</div></div>
+    <div class="kpi"><div class="value">${kpis.threatsBlocked ?? 0}</div><div>Blocked</div></div>
   </div>
 
   ${sections.includes('alerts') ? `
   <h2>Alerts</h2>
   <table>
     <tr><th>Time</th><th>Severity</th><th>Agent</th><th>Description</th></tr>
-    ${mock.alerts.slice(0, 15).map(a => `<tr><td>${a.timestamp}</td><td>${a.severity}</td><td>${escapeHtml(a.agentName)}</td><td>${escapeHtml(a.description)}</td></tr>`).join('')}
+    ${alertRows.slice(0, 50).map((a) => `<tr><td>${escapeHtml(a.timestamp)}</td><td>${escapeHtml(String(a.severity ?? a.level))}</td><td>${escapeHtml(a.agentName)}</td><td>${escapeHtml(a.description || a.ruleDescription || '')}</td></tr>`).join('')}
   </table>` : ''}
 
   ${sections.includes('agents') ? `
   <h2>Endpoints</h2>
   <table>
-    <tr><th>Name</th><th>IP</th><th>OS</th><th>Status</th><th>CPU%</th><th>RAM%</th></tr>
-    ${mock.agents.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${a.ip}</td><td>${escapeHtml(a.os)}</td><td>${a.status}</td><td>${a.cpuUsage}</td><td>${a.ramUsage}</td></tr>`).join('')}
+    <tr><th>Name</th><th>IP</th><th>OS</th><th>Status</th></tr>
+    ${agentRows.map((a) => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.ip)}</td><td>${escapeHtml(a.os)}</td><td>${escapeHtml(a.status)}</td></tr>`).join('')}
   </table>` : ''}
 
   ${sections.includes('vulnerabilities') ? `
   <h2>Vulnerabilities</h2>
   <table>
     <tr><th>CVE</th><th>Agent</th><th>Package</th><th>CVSS</th><th>Severity</th></tr>
-    ${mock.vulnerabilities.sort((a,b) => b.cvss - a.cvss).slice(0, 20).map(v => `<tr><td>${v.cve}</td><td>${escapeHtml(v.agentName)}</td><td>${v.package}</td><td>${v.cvss}</td><td>${v.severity}</td></tr>`).join('')}
+    ${vulns.sort((a, b) => (b.cvss || 0) - (a.cvss || 0)).slice(0, 30).map((v) => `<tr><td>${escapeHtml(v.cve)}</td><td>${escapeHtml(v.agentName)}</td><td>${escapeHtml(v.package)}</td><td>${v.cvss}</td><td>${escapeHtml(v.severity)}</td></tr>`).join('')}
   </table>` : ''}
 
   ${sections.includes('compliance') ? `
   <h2>Compliance</h2>
   <table>
     <tr><th>Agent</th><th>Score</th><th>Passed</th><th>Total</th></tr>
-    ${compliance.map(c => `<tr><td>${escapeHtml(c.agentName)}</td><td>${c.score}%</td><td>${c.passed}</td><td>${c.total}</td></tr>`).join('')}
+    ${compliance.map((c) => `<tr><td>${escapeHtml(c.agentName)}</td><td>${c.score}%</td><td>${c.passed}</td><td>${c.total}</td></tr>`).join('')}
   </table>` : ''}
 
   <h2>${lang === 'it' ? 'Azioni Raccomandate' : 'Recommended Actions'}</h2>
@@ -154,12 +220,11 @@ async function generatePdf(html) {
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdf = await page.pdf({
+    return page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
     });
-    return pdf;
   } finally {
     await browser.close();
   }
@@ -182,4 +247,4 @@ async function generateReport(options) {
   }
 }
 
-module.exports = { generateReport, buildReportHtml };
+module.exports = { generateReport, buildReportHtml, loadReportData };
