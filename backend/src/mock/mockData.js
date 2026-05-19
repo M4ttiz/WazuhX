@@ -457,7 +457,17 @@ function getMetrics(agentId) {
       uptimeSeconds: a.uptime,
       loadAverage: [1.2, 0.9, 0.7],
       scanTime: new Date().toISOString(),
-      source: 'syscollector',
+      source: 'netdata',
+      reachable: true,
+      diskMetric: 'io',
+      diskUnit: 'KiB/s',
+      series: {
+        cpu: [{ time: Date.now() / 1000, value: a.cpuUsage }],
+        ram: [{ time: Date.now() / 1000, value: a.ramUsage }],
+        net: [{ time: Date.now() / 1000, value: 100 }],
+        io: [{ time: Date.now() / 1000, value: 50 }],
+        load: [{ time: Date.now() / 1000, value: 1.2 }],
+      },
       cpuModel: a.cpuModel,
       ramTotalMb: a.ramTotal,
       network: a.network,
@@ -478,7 +488,9 @@ function getMetrics(agentId) {
       totalAgents: agentMetrics.length,
       agentsOverThreshold: agentMetrics.filter((m) => m.thresholdAlerts.length > 0).length,
       lastPollAt: new Date().toISOString(),
+      netdataUnreachable: false,
     },
+    source: 'netdata',
   };
 }
 

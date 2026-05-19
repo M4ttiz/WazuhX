@@ -7,7 +7,7 @@ const { sendData } = require('../utils/response');
 const { withCache, getCacheKey } = require('../middleware/cache');
 
 const router = express.Router();
-const metricsTtl = parseInt(process.env.METRICS_CACHE_TTL_SECONDS || '30', 10);
+const metricsTtl = parseInt(process.env.METRICS_CACHE_TTL_SECONDS || '5', 10);
 
 const realtimeCacheTtlMs = Math.min(
   5000,
@@ -26,7 +26,7 @@ router.get('/realtime/:agentId', async (req, res, next) => {
     }
     sendData(res, {
       data: result.data,
-      source: result.source === 'mock' ? 'mock' : result.data.source || result.source || 'netdata',
+      source: result.source === 'mock' ? 'mock' : 'netdata',
     });
   } catch (err) {
     next(err);
@@ -59,9 +59,13 @@ router.get('/netdata/series', async (req, res, next) => {
     }
 
     const reachable = Object.values(series).some((s) => s.ok);
+    if (!reachable) {
+      return res.status(503).json({ error: 'Netdata unreachable' });
+    }
+
     sendData(res, {
       data: { agentId, range, series, reachable },
-      source: reachable ? 'netdata' : 'wazuh',
+      source: 'netdata',
     });
   } catch (err) {
     next(err);
@@ -75,7 +79,7 @@ router.get('/', async (req, res, next) => {
     const result = await withCache(req, res, key, metricsTtl, () =>
       metricsService.getMetrics(agentId)
     );
-    const source = result.source || 'wazuh';
+    const source = result.source || 'netdata';
     const { source: _s, ...payload } = result;
     sendData(res, { data: payload, source });
   } catch (err) {

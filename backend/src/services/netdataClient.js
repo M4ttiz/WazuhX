@@ -9,6 +9,19 @@ const config = {
   enabled: process.env.NETDATA_ENABLED !== 'false',
 };
 
+const STANDARD_CHARTS = ['system.cpu', 'system.ram', 'system.net', 'system.io', 'system.load'];
+
+function getDefaultNetdataBase() {
+  const raw = (process.env.NETDATA_HOST || `${config.scheme}://localhost:${config.port}`).trim();
+  return raw.replace(/\/$/, '');
+}
+
+function isValidHostIp(hostIp) {
+  const ip = String(hostIp || '').trim();
+  if (!ip || ip === '0.0.0.0') return false;
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) || ip.includes(':');
+}
+
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 50 });
 const httpsAgent = new https.Agent({
   keepAlive: true,
@@ -27,8 +40,11 @@ function isEnabled() {
 }
 
 function buildBaseUrl(hostIp) {
-  const ip = String(hostIp).trim();
-  return `${config.scheme}://${ip}:${config.port}`;
+  if (isValidHostIp(hostIp)) {
+    const ip = String(hostIp).trim();
+    return `${config.scheme}://${ip}:${config.port}`;
+  }
+  return getDefaultNetdataBase();
 }
 
 function classifyError(err) {
@@ -183,8 +199,8 @@ async function getRealtimeMetrics(hostIp) {
     return { ...base, error: 'disabled' };
   }
 
-  if (!ip || ip === '0.0.0.0') {
-    return { ...base, error: 'invalid_host_ip' };
+  if (!isValidHostIp(ip)) {
+    return { ...base, error: 'Netdata unreachable' };
   }
 
   const [cpuRes, ramRes, ioRes] = await Promise.all([
@@ -229,7 +245,46 @@ async function getRealtimeMetrics(hostIp) {
     diskUnit,
     partial,
     reachable: hasAny,
-    error: hasAny ? undefined : errors.join(';') || 'invalid_response',
+    error: hasAny ? undefined : 'Netdata unreachable',
+  };
+}
+
+async function fetchAllCharts(hostIp, { points = 60, after = -60 } = {}) {
+  if (!config.enabled) {
+    return { charts: {}, series: {}, reachable: false, error: 'Netdata unreachable' };
+  }
+
+  if (!isValidHostIp(hostIp)) {
+    return { charts: {}, series: {}, reachable: false, error: 'Netdata unreachable' };
+  }
+
+  const results = await Promise.all(
+    STANDARD_CHARTS.map((chart) => getChartSeries(hostIp, chart, { points, after }))
+  );
+
+  const charts = {};
+  const series = {};
+  let okCount = 0;
+
+  STANDARD_CHARTS.forEach((chart, i) => {
+    const res = results[i];
+    const key = chart.replace('system.', '');
+    if (res.ok) {
+      okCount += 1;
+      series[key] = res.data;
+      charts[chart] = { ok: true, units: res.units };
+    } else {
+      charts[chart] = { ok: false, error: res.error };
+      series[key] = [];
+    }
+  });
+
+  const reachable = okCount > 0;
+  return {
+    charts,
+    series,
+    reachable,
+    error: reachable ? undefined : 'Netdata unreachable',
   };
 }
 
@@ -283,6 +338,8 @@ async function getChartSeries(hostIp, chart, { after = -3600, points = 60 } = {}
 
 module.exports = {
   isEnabled,
+  isValidHostIp,
+  getDefaultNetdataBase,
   buildBaseUrl,
   fetchChart,
   fetchChartSafe,
@@ -291,5 +348,7 @@ module.exports = {
   parseDiskIoSum,
   getChartSeries,
   getRealtimeMetrics,
+  fetchAllCharts,
+  STANDARD_CHARTS,
   config,
 };

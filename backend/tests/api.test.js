@@ -48,6 +48,8 @@ describe('WazuhX API', () => {
     expect(res.body.data.agents).toHaveLength(1);
     expect(res.body.data.agents[0].agentId).toBe('001');
     expect(res.body.data.agents[0].cpuPercent).toBeDefined();
+    expect(res.body.data.agents[0].source).toBe('netdata');
+    expect(res.body.data.agents[0].reachable).toBe(true);
   });
 
   it('GET /api/agents returns agents with mock source', async () => {

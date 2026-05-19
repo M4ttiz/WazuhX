@@ -40,6 +40,7 @@ export function formatLoadAverage(load) {
 
 export function formatMetricsSource(source, scanTime) {
   const labels = {
+    netdata: 'Netdata',
     syscollector: 'Syscollector',
     custom: 'Script agente',
     mixed: 'Syscollector + script',

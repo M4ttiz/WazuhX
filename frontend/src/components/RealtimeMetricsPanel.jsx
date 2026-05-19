@@ -18,11 +18,12 @@ import { chartTooltipStyle, chartAxisProps, chartGridProps } from '../utils/char
 const MAX_POINTS = 20;
 
 function sourceLabel(source, partial) {
-  if (source === 'wazuh') return 'Syscollector (fallback)';
-  if (source === 'mixed') return `Netdata + Syscollector${partial ? ' (parziale)' : ''}`;
   if (source === 'mock') return 'Mock';
   return partial ? 'Netdata (parziale)' : 'Netdata';
 }
+
+const NETDATA_ERROR_BANNER =
+  'Netdata not reachable — check that Netdata is running on the target host (port 19999)';
 
 export default function RealtimeMetricsPanel({ agentId, enabled }) {
   const interval = getRefreshInterval('realtime', 2500);
@@ -95,11 +96,13 @@ export default function RealtimeMetricsPanel({ agentId, enabled }) {
       </div>
 
       {!data.reachable && (
-        <p className="text-sm text-secondary">
-          Metriche host non disponibili su <span className="font-mono text-primary">{data.hostIp}</span>
-          :{port}
-          {data.error && ` (${data.error})`}
-        </p>
+        <div className="p-3 rounded-md bg-red-500/10 border border-red-500/30">
+          <p className="text-sm text-red-400">{NETDATA_ERROR_BANNER}</p>
+          <p className="text-xs text-muted mt-1 font-mono">
+            {data.hostIp}:{port}
+            {data.error && ` · ${data.error}`}
+          </p>
+        </div>
       )}
 
       {data.reachable && (

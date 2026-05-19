@@ -2,6 +2,9 @@ const {
   parseCpuBusySum,
   parseRamPercent,
   parseDiskIoSum,
+  getDefaultNetdataBase,
+  buildBaseUrl,
+  isValidHostIp,
 } = require('../src/services/netdataClient');
 
 describe('netdataClient parsers', () => {
@@ -51,5 +54,34 @@ describe('netdataClient parsers', () => {
       data: [[50, 30]],
     };
     expect(parseDiskIoSum(data)).toBe(80);
+  });
+});
+
+describe('netdataClient host resolution', () => {
+  const prev = process.env.NETDATA_HOST;
+
+  afterEach(() => {
+    if (prev === undefined) delete process.env.NETDATA_HOST;
+    else process.env.NETDATA_HOST = prev;
+  });
+
+  it('getDefaultNetdataBase uses NETDATA_HOST', () => {
+    process.env.NETDATA_HOST = 'http://192.168.50.136:19999';
+    expect(getDefaultNetdataBase()).toBe('http://192.168.50.136:19999');
+  });
+
+  it('buildBaseUrl uses agent IP when valid', () => {
+    expect(buildBaseUrl('10.0.0.5')).toBe('http://10.0.0.5:19999');
+  });
+
+  it('buildBaseUrl falls back to NETDATA_HOST for invalid IP', () => {
+    process.env.NETDATA_HOST = 'http://192.168.50.136:19999';
+    expect(buildBaseUrl('0.0.0.0')).toBe('http://192.168.50.136:19999');
+  });
+
+  it('isValidHostIp rejects empty and 0.0.0.0', () => {
+    expect(isValidHostIp('192.168.1.1')).toBe(true);
+    expect(isValidHostIp('0.0.0.0')).toBe(false);
+    expect(isValidHostIp('')).toBe(false);
   });
 });

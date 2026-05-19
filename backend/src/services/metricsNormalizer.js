@@ -125,13 +125,16 @@ function evaluateThresholds(metrics, thresholds, cooldownState, cooldownMs) {
   const checks = [
     { metric: 'cpu', value: metrics.cpuPercent, threshold: thresholds.cpu },
     { metric: 'ram', value: metrics.ramPercent, threshold: thresholds.ram },
-    {
+  ];
+
+  if (metrics.diskMetric !== 'io') {
+    checks.push({
       metric: 'disk',
       value: metrics.maxDiskPercent,
       threshold: thresholds.disk,
       detail: metrics.disks?.find((d) => d.usedPercent === metrics.maxDiskPercent)?.mount,
-    },
-  ];
+    });
+  }
 
   for (const check of checks) {
     if (check.value <= check.threshold) continue;
@@ -172,6 +175,55 @@ function metricsToLegacyStats(metrics) {
   };
 }
 
+function normalizeNetdataAgentMetrics(agentMeta, hostIp, realtime, chartBundle) {
+  const reachable = Boolean(realtime?.reachable && !realtime?.error);
+  const cpu = realtime?.cpu ?? null;
+  const ram = realtime?.ram ?? null;
+  const diskIo = realtime?.disk ?? null;
+
+  const loadPoints = chartBundle?.series?.load || [];
+  const lastLoad = loadPoints.length ? loadPoints[loadPoints.length - 1]?.value : null;
+  const loadAverage = lastLoad != null ? [lastLoad, lastLoad, lastLoad] : [0, 0, 0];
+
+  const cpuPoints = chartBundle?.series?.cpu || [];
+  const ramPoints = chartBundle?.series?.ram || [];
+  const history = cpuPoints.map((p, i) => ({
+    t:
+      typeof p.time === 'number'
+        ? new Date(p.time * 1000).toISOString()
+        : String(p.time ?? new Date().toISOString()),
+    cpu: p.value ?? 0,
+    ram: ramPoints[i]?.value ?? ram ?? 0,
+    diskMax: diskIo ?? 0,
+  }));
+
+  const netPoints = chartBundle?.series?.net || [];
+  const lastNet = netPoints.length ? netPoints[netPoints.length - 1]?.value : null;
+
+  return {
+    agentId: String(agentMeta.id),
+    agentName: agentMeta.name,
+    hostIp: hostIp || 'unknown',
+    cpuPercent: cpu != null ? Math.min(100, Math.max(0, cpu)) : 0,
+    ramPercent: ram != null ? Math.min(100, Math.max(0, ram)) : 0,
+    maxDiskPercent: diskIo != null ? diskIo : 0,
+    disks: [],
+    uptimeSeconds: 0,
+    loadAverage,
+    scanTime: new Date().toISOString(),
+    source: 'netdata',
+    network: { rx: 0, tx: 0 },
+    netTraffic: lastNet,
+    diskIo,
+    diskUnit: realtime?.diskUnit || 'KiB/s',
+    diskMetric: 'io',
+    reachable,
+    error: reachable ? undefined : chartBundle?.error || realtime?.error || 'Netdata unreachable',
+    series: chartBundle?.series || {},
+    history,
+  };
+}
+
 function appendHistory(historyStore, agentId, point, maxPoints = 20) {
   if (!historyStore.has(agentId)) historyStore.set(agentId, []);
   const buf = historyStore.get(agentId);
@@ -183,6 +235,7 @@ function appendHistory(historyStore, agentId, point, maxPoints = 20) {
 module.exports = {
   getThresholds,
   normalizeAgentMetrics,
+  normalizeNetdataAgentMetrics,
   evaluateThresholds,
   metricsToLegacyStats,
   appendHistory,
