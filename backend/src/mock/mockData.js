@@ -482,6 +482,30 @@ function getMetrics(agentId) {
   };
 }
 
+function getRealtimeMetrics(agentId) {
+  const stripped = String(agentId).replace(/^0+/, '') || '0';
+  const num = parseInt(stripped, 10);
+  if (Number.isNaN(num)) return null;
+  const padded = String(num).padStart(3, '0');
+  const agent = getAgentById(padded);
+  if (!agent) return null;
+
+  const jitter = () => Math.floor(Math.random() * 6) - 3;
+  const maxDisk = Math.max(...(agent.disks || []).map((d) => d.used), 0);
+
+  return {
+    agentId: agent.id,
+    agentName: agent.name,
+    hostIp: agent.ip,
+    cpu: Math.min(100, Math.max(0, agent.cpuUsage + jitter())),
+    ram: Math.min(100, Math.max(0, agent.ramUsage + jitter())),
+    disk: Math.min(100, Math.max(0, maxDisk + jitter())),
+    timestamp: Date.now(),
+    reachable: true,
+    source: 'netdata',
+  };
+}
+
 function getAIContext() {
   return {
     agents: agents.map((a) => ({
@@ -514,6 +538,7 @@ module.exports = {
   getAgentProcesses,
   getAgentStats,
   getMetrics,
+  getRealtimeMetrics,
   generateCompliance,
   getVulnStats,
   getAIContext,

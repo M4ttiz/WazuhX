@@ -4,7 +4,7 @@ export function metricBarColor(value, threshold) {
   return 'bg-accent';
 }
 
-export default function ResourceMetricCard({ label, value = 0, threshold = 90, unit = '%' }) {
+export default function ResourceMetricCard({ label, value = 0, threshold = 90, unit = '%', hideThreshold }) {
   const pct = Math.min(100, Math.max(0, value));
 
   return (
@@ -22,10 +22,12 @@ export default function ResourceMetricCard({ label, value = 0, threshold = 90, u
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-xs text-muted mt-2">
-        Soglia alert: {threshold}
-        {unit}
-      </p>
+      {!hideThreshold && (
+        <p className="text-xs text-muted mt-2">
+          Soglia alert: {threshold}
+          {unit}
+        </p>
+      )}
     </div>
   );
 }

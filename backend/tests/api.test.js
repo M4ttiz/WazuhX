@@ -21,6 +21,23 @@ describe('WazuhX API', () => {
     expect(res.headers['x-data-source']).toBe('mock');
   });
 
+  it('GET /api/metrics/realtime/001 returns netdata metrics in mock mode', async () => {
+    const res = await request(app).get('/api/metrics/realtime/001');
+    expect(res.status).toBe(200);
+    expect(res.body.agentId).toBe('001');
+    expect(typeof res.body.cpu).toBe('number');
+    expect(typeof res.body.ram).toBe('number');
+    expect(typeof res.body.disk).toBe('number');
+    expect(res.body.reachable).toBe(true);
+    expect(res.body.timestamp).toBeDefined();
+    expect(res.headers['x-data-source']).toBe('mock');
+  });
+
+  it('GET /api/metrics/realtime/999 returns 404', async () => {
+    const res = await request(app).get('/api/metrics/realtime/999');
+    expect(res.status).toBe(404);
+  });
+
   it('GET /api/metrics?agentId=001 returns single agent metrics', async () => {
     const res = await request(app).get('/api/metrics?agentId=001');
     expect(res.status).toBe(200);

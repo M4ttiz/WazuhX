@@ -15,6 +15,10 @@ services:
       - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL:-}
       - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER:-}
       - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-}
+      - NETDATA_PORT=${NETDATA_PORT:-19999}
+      - NETDATA_SCHEME=${NETDATA_SCHEME:-http}
+      - NETDATA_TIMEOUT_MS=${NETDATA_TIMEOUT_MS:-3000}
+      - NETDATA_ENABLED=${NETDATA_ENABLED:-true}
     networks:
       - wazuh-net
     restart: unless-stopped

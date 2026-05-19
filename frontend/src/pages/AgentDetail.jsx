@@ -6,6 +6,7 @@ import GaugeChart from '../components/GaugeChart';
 import AlertTable from '../components/AlertTable';
 import SeverityBadge from '../components/SeverityBadge';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
+import RealtimeMetricsPanel from '../components/RealtimeMetricsPanel';
 import { useAI } from '../hooks/useAI';
 import {
   formatBytes, formatUptime, formatDate, formatLoadAverage, formatMetricsSource,
@@ -105,76 +106,82 @@ export default function AgentDetail() {
         </div>
       )}
 
-      {tab === 'Risorse' && stats && (
+      {tab === 'Risorse' && (
         <div className="space-y-6">
-          <ThresholdAlertBanner alerts={agentMetrics?.thresholdAlerts || []} />
-          <p className="text-xs text-muted">
-            Fonte: {formatMetricsSource(stats.source, stats.scanTime)}
-          </p>
-          <div className="flex justify-end">
-            <button type="button" className="btn-secondary text-sm" onClick={refetchMetrics}>
-              Aggiorna
-            </button>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="card flex justify-center">
-              <GaugeChart value={stats.cpuUsage} label="CPU" />
-            </div>
-            <div className="card flex justify-center">
-              <GaugeChart value={stats.ramUsage} label="RAM" />
-            </div>
-          </div>
-          <div className="card">
-            <p className="card-title">Disk</p>
-            {stats.disks?.map((d) => (
-              <div key={d.mount} className="mb-3">
-                <div className="flex justify-between text-xs text-secondary mb-1">
-                  <span className="font-mono">{d.mount}</span>
-                  <span>{d.used}% / {d.total} GB</span>
+          <RealtimeMetricsPanel agentId={id} enabled={tab === 'Risorse'} />
+
+          {stats && (
+            <>
+              <ThresholdAlertBanner alerts={agentMetrics?.thresholdAlerts || []} />
+              <p className="text-xs text-muted">
+                Fonte: {formatMetricsSource(stats.source, stats.scanTime)}
+              </p>
+              <div className="flex justify-end">
+                <button type="button" className="btn-secondary text-sm" onClick={refetchMetrics}>
+                  Aggiorna (syscollector)
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="card flex justify-center">
+                  <GaugeChart value={stats.cpuUsage} label="CPU" />
                 </div>
-                <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                  <div className="h-full bg-accent transition-all duration-150" style={{ width: `${d.used}%` }} />
+                <div className="card flex justify-center">
+                  <GaugeChart value={stats.ramUsage} label="RAM" />
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="card grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-secondary">
-            <p>RX: <span className="font-mono text-primary">{formatBytes(stats.network?.rx)}/s</span></p>
-            <p>TX: <span className="font-mono text-primary">{formatBytes(stats.network?.tx)}/s</span></p>
-            <p>Uptime: <span className="font-mono text-primary">{formatUptime(stats.uptime)}</span></p>
-            <p>Load avg: <span className="font-mono text-primary">{formatLoadAverage(stats.loadAverage)}</span></p>
-          </div>
-          <div className="card p-0 overflow-hidden">
-            <p className="card-title px-5 pt-5">Top processi</p>
-            <div className="table-wrap border-0 border-t border-border rounded-none">
-              <table>
-                <thead>
-                  <tr>
-                    <th>PID</th>
-                    <th>Nome</th>
-                    <th>CPU%</th>
-                    <th>MEM</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {processes?.map((p) => (
-                    <tr key={p.pid}>
-                      <td className="font-mono text-xs">{p.pid}</td>
-                      <td>{p.name}</td>
-                      <td>{p.cpu}%</td>
-                      <td className="font-mono text-xs">{p.memory}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="card">
+                <p className="card-title">Disk</p>
+                {stats.disks?.map((d) => (
+                  <div key={d.mount} className="mb-3">
+                    <div className="flex justify-between text-xs text-secondary mb-1">
+                      <span className="font-mono">{d.mount}</span>
+                      <span>{d.used}% / {d.total} GB</span>
+                    </div>
+                    <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                      <div className="h-full bg-accent transition-all duration-150" style={{ width: `${d.used}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="card grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-secondary">
+                <p>RX: <span className="font-mono text-primary">{formatBytes(stats.network?.rx)}/s</span></p>
+                <p>TX: <span className="font-mono text-primary">{formatBytes(stats.network?.tx)}/s</span></p>
+                <p>Uptime: <span className="font-mono text-primary">{formatUptime(stats.uptime)}</span></p>
+                <p>Load avg: <span className="font-mono text-primary">{formatLoadAverage(stats.loadAverage)}</span></p>
+              </div>
+              <div className="card p-0 overflow-hidden">
+                <p className="card-title px-5 pt-5">Top processi</p>
+                <div className="table-wrap border-0 border-t border-border rounded-none">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>PID</th>
+                        <th>Nome</th>
+                        <th>CPU%</th>
+                        <th>MEM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {processes?.map((p) => (
+                        <tr key={p.pid}>
+                          <td className="font-mono text-xs">{p.pid}</td>
+                          <td>{p.name}</td>
+                          <td>{p.cpu}%</td>
+                          <td className="font-mono text-xs">{p.memory}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
 
-      {tab === 'Risorse' && !stats && !metricsLoading && (
-        <div className="card text-center py-12 text-secondary text-sm">
-          Metriche non disponibili per questo agente. Verifica syscollector o lo script wazuhx_metrics.
+          {!stats && !metricsLoading && (
+            <div className="card text-center py-8 text-secondary text-sm">
+              Metriche syscollector non disponibili. Netdata sopra resta disponibile se raggiungibile dall&apos;host.
+            </div>
+          )}
         </div>
       )}
 

@@ -7,6 +7,9 @@ export default function Settings() {
   const [refreshDashboard, setRefreshDashboard] = useState(
     localStorage.getItem('wazuhx-refresh-dashboard') || '15000'
   );
+  const [refreshRealtime, setRefreshRealtime] = useState(
+    localStorage.getItem('wazuhx-refresh-realtime') || '3000'
+  );
   const [notifications, setNotifications] = useState(
     localStorage.getItem('wazuhx-notifications') === 'true'
   );
@@ -78,6 +81,16 @@ export default function Settings() {
             value={refreshDashboard}
             onChange={(e) => setRefreshDashboard(e.target.value)}
             onBlur={() => saveRefresh('dashboard', refreshDashboard)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-secondary text-xs">Netdata / metriche live agente (ms)</span>
+          <input
+            type="number"
+            className="input w-full mt-1"
+            value={refreshRealtime}
+            onChange={(e) => setRefreshRealtime(e.target.value)}
+            onBlur={() => saveRefresh('realtime', refreshRealtime)}
           />
         </label>
       </div>
