@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import { useWazuh } from '../hooks/useWazuh';
 import PageHeader from '../components/PageHeader';
+import GrafanaPanel from '../components/GrafanaPanel';
 import StatusTabs from '../components/management/StatusTabs';
 import BulkActionBar from '../components/management/BulkActionBar';
 import { apiDownload } from '../utils/api';
@@ -148,9 +149,8 @@ export default function Compliance() {
         dismissLabel="Non conforme"
       />
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card">
-          <p className="card-title">Confronto compliance</p>
+      <div className="grid grid-cols-12 gap-3">
+        <GrafanaPanel title="Confronto compliance" className="col-span-12 lg:col-span-6">
           {loading ? (
             <div className="skeleton h-64" />
           ) : (
@@ -163,10 +163,9 @@ export default function Compliance() {
               </RadarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </GrafanaPanel>
         {donutData.length > 0 && (
-          <div className="card">
-            <p className="card-title">Pass / Fail ({benchmark.toUpperCase()})</p>
+          <GrafanaPanel title={`Pass / Fail (${benchmark.toUpperCase()})`} className="col-span-12 lg:col-span-6">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie data={donutData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90}>
@@ -177,7 +176,7 @@ export default function Compliance() {
                 <Tooltip contentStyle={chartTooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </GrafanaPanel>
         )}
       </div>
 

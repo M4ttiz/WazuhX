@@ -7,9 +7,7 @@ import { DataSourceProvider } from './context/DataSourceContext';
 import { RefreshProvider } from './context/RefreshContext';
 import './index.css';
 
-const theme = localStorage.getItem('wazuhx-theme') || 'dark';
-document.documentElement.classList.toggle('dark', theme === 'dark');
-document.documentElement.classList.toggle('light', theme === 'light');
+document.documentElement.classList.add('dark');
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

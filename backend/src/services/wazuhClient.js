@@ -375,7 +375,7 @@ async function getAgentProcesses(id) {
 async function getAlerts(filters = {}) {
   if (useMock) {
     const filtered = mock.filterAlerts(filters);
-    return { ...mock.paginate(filtered, filters.page, filters.limit), source: 'mock' };
+    return { data: filtered, source: 'mock' };
   }
 
   const page = parseInt(filters.page, 10) || 1;

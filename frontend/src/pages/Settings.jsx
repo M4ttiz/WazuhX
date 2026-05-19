@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '../context/ToastContext';
+import GrafanaPanel from '../components/GrafanaPanel';
+import { useNoiseRuleIds, DEFAULT_NOISE_RULE_IDS } from '../hooks/useNoiseRuleIds';
 
 export default function Settings() {
   const { toast } = useToast();
-  const [theme, setTheme] = useState(localStorage.getItem('wazuhx-theme') || 'dark');
+  const { ruleIds, addRuleId, removeRuleId, resetDefaults } = useNoiseRuleIds();
+  const [newRuleId, setNewRuleId] = useState('');
   const [refreshDashboard, setRefreshDashboard] = useState(
     localStorage.getItem('wazuhx-refresh-dashboard') || '15000'
   );
@@ -17,12 +20,6 @@ export default function Settings() {
   const [wazuhHost, setWazuhHost] = useState(
     localStorage.getItem('wazuhx-wazuh-host') || 'https://localhost'
   );
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    document.documentElement.classList.toggle('light', theme === 'light');
-    localStorage.setItem('wazuhx-theme', theme);
-  }, [theme]);
 
   const handleTestConnection = async () => {
     try {
@@ -52,10 +49,16 @@ export default function Settings() {
     toast(perm === 'granted' ? 'Notifiche attivate' : 'Notifiche negate', perm === 'granted' ? 'success' : 'error');
   };
 
+  const handleAddRule = () => {
+    if (!newRuleId.trim()) return;
+    addRuleId(newRuleId.trim());
+    setNewRuleId('');
+    toast('Regola aggiunta', 'success');
+  };
+
   return (
     <div className="max-w-xl space-y-4">
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Connessione Wazuh</p>
+      <GrafanaPanel title="Connessione Wazuh">
         <p className="text-secondary text-sm">
           Manager API: WAZUH_API_URL, WAZUH_USER, WAZUH_PASSWORD.
           Per alert, grafici e CVE (Wazuh 4.8+): WAZUH_INDEXER_URL, WAZUH_INDEXER_USER, WAZUH_INDEXER_PASSWORD.
@@ -69,10 +72,9 @@ export default function Settings() {
             {testResult.agentCount !== undefined && ` (${testResult.agentCount} agenti)`}
           </p>
         )}
-      </div>
+      </GrafanaPanel>
 
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Auto-refresh</p>
+      <GrafanaPanel title="Auto-refresh">
         <label className="block">
           <span className="text-secondary text-xs">Dashboard (ms)</span>
           <input
@@ -83,7 +85,7 @@ export default function Settings() {
             onBlur={() => saveRefresh('dashboard', refreshDashboard)}
           />
         </label>
-        <label className="block">
+        <label className="block mt-3">
           <span className="text-secondary text-xs">Netdata / metriche live agente (ms)</span>
           <input
             type="number"
@@ -93,10 +95,33 @@ export default function Settings() {
             onBlur={() => saveRefresh('realtime', refreshRealtime)}
           />
         </label>
-      </div>
+      </GrafanaPanel>
 
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Gemini API</p>
+      <GrafanaPanel title="Regole di soppressione alert">
+        <p className="text-secondary text-sm mb-3">
+          ID regola Wazuh nascosti per default nella pagina Alert (es. 5710 SSH brute force).
+          Il server applica anche{' '}
+          <span className="font-mono text-xs">{DEFAULT_NOISE_RULE_IDS.join(', ')}</span>.
+        </p>
+        <ul className="space-y-2 mb-3">
+          {ruleIds.map((id) => (
+            <li key={id} className="flex items-center justify-between gap-2 text-sm font-mono">
+              <span>{id}</span>
+              <button type="button" className="btn-secondary text-xs py-1 px-2" onClick={() => removeRuleId(id)}>
+                Rimuovi
+              </button>
+            </li>
+          ))}
+        </ul>
+        <SettingsRuleForm
+          newRuleId={newRuleId}
+          setNewRuleId={setNewRuleId}
+          onAdd={handleAddRule}
+          onReset={resetDefaults}
+        />
+      </GrafanaPanel>
+
+      <GrafanaPanel title="Gemini API">
         <p className="text-secondary text-sm">
           Configura GEMINI_API_KEY nel file .env del backend.
         </p>
@@ -108,38 +133,16 @@ export default function Settings() {
         >
           Ottieni API key gratuita
         </a>
-      </div>
+      </GrafanaPanel>
 
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Aspetto</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={`px-4 py-2 rounded-md text-sm font-medium ${theme === 'dark' ? 'tab-active' : 'btn-secondary'}`}
-            onClick={() => setTheme('dark')}
-          >
-            Dark
-          </button>
-          <button
-            type="button"
-            className={`px-4 py-2 rounded-md text-sm font-medium ${theme === 'light' ? 'tab-active' : 'btn-secondary'}`}
-            onClick={() => setTheme('light')}
-          >
-            Light
-          </button>
-        </div>
-      </div>
-
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Notifiche browser</p>
+      <GrafanaPanel title="Notifiche browser">
         <button type="button" className="btn-primary" onClick={requestNotifications}>
           {notifications ? 'Notifiche attive' : 'Abilita notifiche'}
         </button>
-        <p className="text-muted text-xs">Alert per severità ≥ 12</p>
-      </div>
+        <p className="text-muted text-xs mt-2">Alert per severita &gt;= 12</p>
+      </GrafanaPanel>
 
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Wazuh Dashboard originale</p>
+      <GrafanaPanel title="Wazuh Dashboard originale">
         <input
           className="input w-full"
           value={wazuhHost}
@@ -153,11 +156,31 @@ export default function Settings() {
           href={wazuhHost}
           target="_blank"
           rel="noreferrer"
-          className="btn-primary inline-block text-center"
+          className="btn-primary inline-block text-center mt-3"
         >
           Apri Wazuh Dashboard
         </a>
-      </div>
+      </GrafanaPanel>
+    </div>
+  );
+}
+
+function SettingsRuleForm({ newRuleId, setNewRuleId, onAdd, onReset }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <input
+        className="input flex-1 min-w-[120px]"
+        placeholder="ID regola"
+        value={newRuleId}
+        onChange={(e) => setNewRuleId(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+      />
+      <button type="button" className="btn-primary" onClick={onAdd}>
+        Aggiungi
+      </button>
+      <button type="button" className="btn-secondary" onClick={onReset}>
+        Reset default
+      </button>
     </div>
   );
 }

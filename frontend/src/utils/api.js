@@ -7,8 +7,12 @@ export function setDataSourceListener(fn) {
 function normalizeJsonResponse(json) {
   if (json && typeof json === 'object' && 'data' in json) {
     const { data, pagination, stats } = json;
-    if (pagination !== undefined) return { data, pagination };
-    if (stats !== undefined) return { data, stats };
+    if (pagination !== undefined || stats !== undefined) {
+      const out = { data };
+      if (pagination !== undefined) out.pagination = pagination;
+      if (stats !== undefined) out.stats = stats;
+      return out;
+    }
     return data;
   }
   return json;

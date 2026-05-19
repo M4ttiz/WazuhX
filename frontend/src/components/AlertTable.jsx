@@ -17,10 +17,10 @@ export default function AlertTable({
   const [expanded, setExpanded] = useState(null);
   const normalized = alerts.map(normalizeAlertForUi);
   const allSelected = normalized.length > 0 && normalized.every((a) => selectedIds.has(a.id));
-  const colCount = 6 + (selectable ? 1 : 0) + (getStatus ? 1 : 0);
+  const colCount = 7 + (selectable ? 1 : 0) + (getStatus ? 1 : 0);
 
   if (!normalized.length) {
-    return <p className="text-[#94a3b8] text-sm text-center py-8">Nessun alert trovato</p>;
+    return <p className="text-[var(--text-secondary)] text-sm text-center py-8">Nessun alert trovato</p>;
   }
 
   return (
@@ -43,6 +43,7 @@ export default function AlertTable({
             <th>Severità</th>
             <th>Agente</th>
             <th>Regola</th>
+            <th className="w-14">N</th>
             <th>Descrizione</th>
             <th>MITRE</th>
           </tr>
@@ -66,45 +67,64 @@ export default function AlertTable({
                 )}
                 {getStatus && (
                   <td>
-                    <span className="text-xs uppercase text-[#94a3b8]">
+                    <span className="text-xs uppercase text-[var(--text-muted)]">
                       {STATUS_LABELS[getStatus(a.id)] || getStatus(a.id)}
                     </span>
                   </td>
                 )}
-                <td className="font-mono text-xs text-[#94a3b8]">{formatDate(a.timestamp)}</td>
+                <td className="font-mono text-xs text-[var(--text-secondary)]">{formatDate(a.timestamp)}</td>
                 <td>
                   <SeverityBadge level={a.level ?? a.severity} label={a.severityLabel} />
                 </td>
                 <td>{a.agentName}</td>
                 <td className="font-mono text-xs">{a.ruleId}</td>
-                <td className="max-w-xs truncate text-[#94a3b8]">{a.description}</td>
-                <td className="font-mono text-xs text-[#60a5fa]">{a.mitreTechnique}</td>
+                <td>
+                  {(a.count || 1) > 1 ? (
+                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--accent-light)] text-[var(--accent)]">
+                      x{a.count}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--text-muted)] text-xs">-</span>
+                  )}
+                </td>
+                <td className="max-w-xs truncate text-[var(--text-secondary)]">{a.description}</td>
+                <td className="font-mono text-xs text-[var(--accent)]">{a.mitreTechnique}</td>
               </tr>
               {expandable && expanded === a.id && (
                 <tr>
-                  <td colSpan={colCount} className="!h-auto py-4 bg-[#0f172a]">
+                  <td colSpan={colCount} className="!h-auto py-4 bg-[var(--bg-base)]">
                     <div className="grid md:grid-cols-2 gap-4 text-xs">
                       <div>
                         <p className="text-[#64748b] mb-1 uppercase text-[11px] font-semibold">Dettaglio</p>
                         <p className="text-[#f1f5f9] text-sm mb-2">{a.ruleDescription || a.description}</p>
                         <p className="text-[#94a3b8]">Agente: {a.agentName} · Regola {a.ruleId}</p>
-                        <p className="text-[#94a3b8] mt-1">{formatDate(a.timestamp)}</p>
+                        <p className="text-[var(--text-secondary)] mt-1">
+                          Ultimo: {formatDate(a.timestamp)}
+                          {a.first_seen && a.first_seen !== a.timestamp && (
+                            <> · Primo: {formatDate(a.first_seen)}</>
+                          )}
+                        </p>
+                        {(a.count || 1) > 1 && (
+                          <p className="text-[var(--accent)] mt-1 font-mono text-xs">
+                            {a.count} occorrenze raggruppate
+                          </p>
+                        )}
                         {a.groups?.length > 0 && (
-                          <p className="text-[#94a3b8] mt-1">Gruppi: {a.groups.join(', ')}</p>
+                          <p className="text-[var(--text-secondary)] mt-1">Gruppi: {a.groups.join(', ')}</p>
                         )}
                       </div>
                       <div>
-                        <p className="text-[#64748b] mb-1 uppercase text-[11px] font-semibold">Log raw</p>
-                        <pre className="bg-[#0f172a] border border-[rgba(255,255,255,0.1)] rounded-md p-3 overflow-x-auto text-[11px] font-mono max-h-40">
-                          {a.rawLog || '—'}
+                        <p className="text-[var(--text-muted)] mb-1 uppercase text-[11px] font-semibold">Log raw</p>
+                        <pre className="bg-[var(--bg-panel)] border border-[var(--border)] rounded-md p-3 overflow-x-auto text-[11px] font-mono max-h-40">
+                          {a.rawLog || '-'}
                         </pre>
                         {(a.mitreTactic || a.mitreTechniqueName) && (
-                          <p className="text-[#94a3b8] mt-2 text-xs">
-                            MITRE: {a.mitreTactic} · {a.mitreTechnique} {a.mitreTechniqueName}
+                          <p className="text-[var(--text-secondary)] mt-2 text-xs">
+                            MITRE: {a.mitreTactic} / {a.mitreTechnique} {a.mitreTechniqueName}
                           </p>
                         )}
                         {a.responseSuggestion && (
-                          <p className="text-[#10b981] text-sm mt-2">{a.responseSuggestion}</p>
+                          <p className="text-[var(--green)] text-sm mt-2">{a.responseSuggestion}</p>
                         )}
                       </div>
                     </div>

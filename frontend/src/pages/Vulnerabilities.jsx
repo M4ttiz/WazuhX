@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useWazuh } from '../hooks/useWazuh';
 import PageHeader from '../components/PageHeader';
+import GrafanaPanel from '../components/GrafanaPanel';
 import KpiCard from '../components/KpiCard';
 import SeverityBadge from '../components/SeverityBadge';
 import EmptyState from '../components/EmptyState';
@@ -101,7 +102,7 @@ export default function Vulnerabilities() {
     : 'Nessuna vulnerabilità trovata. Verifica WAZUH_INDEXER_URL e che gli agenti eseguano vulnerability detection.';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title="Vulnerabilità" subtitle="Traccia CVE e patch mancanti sull'infrastruttura" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
@@ -114,8 +115,7 @@ export default function Vulnerabilities() {
       </div>
 
       {!loading && donutData.length > 0 && (
-        <div className="card">
-          <p className="card-title">Distribuzione severità</p>
+        <GrafanaPanel title="Distribuzione severità" className="col-span-12 lg:col-span-6">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={donutData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
@@ -126,10 +126,10 @@ export default function Vulnerabilities() {
               <Tooltip contentStyle={chartTooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </GrafanaPanel>
       )}
 
-      <div className="card flex flex-wrap gap-3 items-end">
+      <GrafanaPanel className="flex flex-wrap gap-3 items-end">
         <select className="select" value={severity} onChange={(e) => setSeverity(e.target.value)}>
           <option value="">Tutte le severità</option>
           {SEVERITY_OPTIONS.filter(Boolean).map((s) => (
@@ -156,7 +156,7 @@ export default function Vulnerabilities() {
           <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
           Raggruppa per agente
         </label>
-      </div>
+      </GrafanaPanel>
 
       {loading && <div className="card skeleton h-48" />}
 

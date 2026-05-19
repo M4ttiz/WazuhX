@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Server, AlertTriangle, Shield, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 import { useWazuh } from '../hooks/useWazuh';
@@ -8,6 +8,7 @@ import KpiCard from '../components/KpiCard';
 import MitreHeatmap from '../components/MitreHeatmap';
 import SeverityBadge from '../components/SeverityBadge';
 import EmptyState from '../components/EmptyState';
+import GrafanaPanel from '../components/GrafanaPanel';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, CartesianGrid,
@@ -37,7 +38,7 @@ export default function Dashboard() {
 
   if (!data && loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="skeleton h-10 w-48 rounded-lg" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
@@ -56,7 +57,7 @@ export default function Dashboard() {
   const connected = wazuhConnected && !isMock;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#f1f5f9]">Cruscotto SOC</h1>
@@ -119,9 +120,8 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card">
-          <p className="card-title">Trend severità (7 giorni)</p>
+      <div className="grid grid-cols-12 gap-3">
+        <GrafanaPanel title="Trend severità (7 giorni)" className="col-span-12 lg:col-span-6">
           <ResponsiveContainer width="100%" height={280} className="h-[200px] lg:h-[300px] min-h-[200px]">
             <AreaChart data={severityTrend || []}>
               <defs>
@@ -140,10 +140,9 @@ export default function Dashboard() {
               <Area type="monotone" dataKey="low" stackId="1" stroke={SEVERITY_COLORS.low} fill={SEVERITY_COLORS.low} fillOpacity={0.25} />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </GrafanaPanel>
 
-        <div className="card">
-          <p className="card-title">Distribuzione severità</p>
+        <GrafanaPanel title="Distribuzione severità" className="col-span-12 lg:col-span-6">
           <ResponsiveContainer width="100%" height={280} className="h-[200px] lg:h-[300px] min-h-[200px]">
             <PieChart>
               <Pie
@@ -163,12 +162,11 @@ export default function Dashboard() {
               <Tooltip contentStyle={chartTooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </GrafanaPanel>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card">
-          <p className="card-title">Top 10 regole</p>
+      <div className="grid grid-cols-12 gap-3">
+        <GrafanaPanel title="Top 10 regole" className="col-span-12 lg:col-span-6">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={topRules || []} layout="vertical">
               <CartesianGrid {...chartGridProps} />
@@ -178,18 +176,16 @@ export default function Dashboard() {
               <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <p className="card-title">MITRE ATT&CK</p>
+        </GrafanaPanel>
+        <GrafanaPanel title="MITRE ATT&CK" className="col-span-12 lg:col-span-6">
           <MitreHeatmap data={mitreHeatmap || []} />
-        </div>
+        </GrafanaPanel>
       </div>
 
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <p className="card-title mb-0">Ultimi alert</p>
-          <Link to="/alerts" className="text-sm text-[#f59e0b] hover:underline font-medium">
-            Vedi tutti →
+      <GrafanaPanel title="Ultimi alert" className="col-span-12">
+        <div className="flex justify-end -mt-1 mb-2">
+          <Link to="/alerts" className="text-sm text-[var(--accent)] hover:underline font-medium">
+            Vedi tutti
           </Link>
         </div>
         <div className="table-wrap">
@@ -219,7 +215,7 @@ export default function Dashboard() {
             <p className="text-center text-[#94a3b8] py-8 text-sm">Nessun alert recente</p>
           )}
         </div>
-      </div>
+      </GrafanaPanel>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Alert totali" value={kpis?.totalAlerts} variant="info" loading={loading} />

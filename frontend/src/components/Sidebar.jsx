@@ -40,13 +40,13 @@ export default function Sidebar({ open, onClose }) {
       <aside
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed left-0 top-0 h-full w-[220px] bg-[#0f172a] border-r border-[rgba(255,255,255,0.1)] z-50 flex flex-col transition-transform duration-200 ${
+        className={`fixed left-0 top-0 h-full w-[220px] bg-[var(--bg-panel)] border-r border-[var(--border)] z-50 flex flex-col transition-transform duration-200 ${
           open ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <div className="p-4 border-b border-[rgba(255,255,255,0.1)] flex items-center gap-2">
-          <ShieldCheck className="text-[#f59e0b]" size={24} aria-hidden />
-          <span className="text-lg font-bold text-[#f1f5f9]">WazuhX</span>
+        <div className="p-4 border-b border-[var(--border)] flex items-center gap-2">
+          <ShieldCheck className="text-[var(--accent)]" size={24} aria-hidden />
+          <span className="text-lg font-bold text-[var(--text-primary)]">WazuhX</span>
         </div>
         <nav className="flex-1 py-3 px-2 overflow-y-auto">
           {NAV.map((item) => {
@@ -60,8 +60,8 @@ export default function Sidebar({ open, onClose }) {
                 className={({ isActive }) =>
                   `flex items-center gap-3 py-3 px-4 mb-0.5 rounded-md transition-colors duration-150 ${
                     isActive
-                      ? 'nav-link-active text-[#93c5fd]'
-                      : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-[#f1f5f9]'
+                      ? 'nav-link-active'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-panel-hover)] hover:text-[var(--text-primary)]'
                   }`
                 }
               >
@@ -77,7 +77,7 @@ export default function Sidebar({ open, onClose }) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-[rgba(255,255,255,0.1)] text-xs text-[#64748b]">v1.0.0</div>
+        <div className="p-4 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">v1.0.0</div>
       </aside>
     </>
   );

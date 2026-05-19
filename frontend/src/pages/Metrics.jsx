@@ -1,112 +1,64 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
-import ResourceMetricCard from '../components/ResourceMetricCard';
-import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
-import KpiCard from '../components/KpiCard';
 import PageHeader from '../components/PageHeader';
-import { formatLoadAverage } from '../utils/formatters';
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from 'recharts';
-import { chartTooltipStyle, chartAxisProps, chartGridProps } from '../utils/chartTheme';
+import GrafanaPanel from '../components/GrafanaPanel';
+import SegmentBar from '../components/SegmentBar';
+import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 
 const NETDATA_ERROR_BANNER =
-  'Netdata not reachable — check that Netdata is running on the target host (port 19999)';
+  'Netdata not reachable - check that Netdata is running on the target host (port 19999)';
 
-function buildChartRows(agent) {
-  const cpu = agent.series?.cpu || [];
-  if (!cpu.length) return agent.history || [];
-
-  return cpu.map((p, i) => ({
-    t:
-      typeof p.time === 'number'
-        ? new Date(p.time * 1000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-        : String(p.time ?? i),
-    cpu: p.value ?? 0,
-    ram: agent.series?.ram?.[i]?.value ?? 0,
-  }));
-}
-
-function AgentNetdataCard({ agent, thresholds }) {
-  const hasAlert = (agent.thresholdAlerts?.length || 0) > 0;
-  const chartRows = useMemo(() => buildChartRows(agent), [agent]);
-  const unreachable = !agent.reachable;
-
+function StatValue({ loading, children }) {
+  if (loading) return <div className="skeleton h-8 w-16" />;
   return (
-    <div className={`card ${hasAlert ? 'border-danger' : ''} ${unreachable ? 'opacity-75' : ''}`}>
-      <div className="flex justify-between items-start mb-4">
-          <div>
-            <Link to={`/agents/${agent.agentId}`} className="font-semibold text-primary hover:text-accent">
-              {agent.agentName}
-            </Link>
-            <p className="text-xs text-muted mt-1 font-mono">{agent.hostIp || '—'}</p>
-            {unreachable && (
-              <p className="text-xs text-danger mt-1">{agent.error || 'Netdata unreachable'}</p>
-            )}
-          </div>
-          {hasAlert && (
-            <span className="text-xs font-medium text-danger bg-[rgba(220,38,38,0.12)] px-2 py-1 rounded">
-              {agent.thresholdAlerts.length} alert
-            </span>
-          )}
-      </div>
-
-      {!unreachable && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
-            <ResourceMetricCard label="CPU" value={agent.cpuPercent} threshold={thresholds?.cpu ?? 90} />
-            <ResourceMetricCard label="RAM" value={agent.ramPercent} threshold={thresholds?.ram ?? 90} />
-            <ResourceMetricCard
-              label="Disk I/O"
-              value={agent.diskIo}
-              threshold={thresholds?.disk ?? 85}
-              unit={agent.diskUnit || 'KiB/s'}
-              showBar={false}
-            />
-            <ResourceMetricCard
-              label="Network"
-              value={agent.netTraffic}
-              threshold={100}
-              unit=""
-              showBar={false}
-            />
-            <div className="text-sm text-secondary">
-              <p className="text-xs text-muted mb-1">Load avg</p>
-              <p className="font-mono text-primary">{formatLoadAverage(agent.loadAverage)}</p>
-            </div>
-          </div>
-
-          {chartRows.length > 1 && (
-            <div>
-              <p className="card-title">Trend (ultimi 60 campioni)</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={chartRows}>
-                  <CartesianGrid {...chartGridProps} />
-                  <XAxis dataKey="t" hide />
-                  <YAxis domain={[0, 100]} {...chartAxisProps} width={32} />
-                  <Tooltip contentStyle={chartTooltipStyle} />
-                  <Area type="monotone" dataKey="cpu" stroke="#2563eb" fill="#2563eb" fillOpacity={0.15} name="CPU %" />
-                  <Area type="monotone" dataKey="ram" stroke="#16a34a" fill="#16a34a" fillOpacity={0.1} name="RAM %" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <p className="text-2xl font-semibold font-mono text-[var(--text-primary)]">{children}</p>
   );
 }
 
 export default function Metrics() {
-  const interval = getRefreshInterval('metrics', 5000);
+  const interval = getRefreshInterval('metrics', 10000);
   const { data, loading, error } = useWazuh('/metrics', { refreshInterval: interval });
+  const { data: agentsData } = useWazuh('/agents');
+  const { data: overview } = useWazuh('/overview', { refreshInterval: interval });
+
+  const agentsById = useMemo(() => {
+    const list = Array.isArray(agentsData) ? agentsData : [];
+    return Object.fromEntries(list.map((a) => [String(a.id), a]));
+  }, [agentsData]);
 
   const thresholds = data?.thresholds || { cpu: 90, ram: 90, disk: 85 };
-  const agents = data?.agents || [];
+  const metricAgents = data?.agents || [];
   const alerts = data?.alerts || [];
   const summary = data?.summary || {};
+
+  const rows = useMemo(
+    () =>
+      metricAgents.map((m) => {
+        const meta = agentsById[String(m.agentId)] || {};
+        return {
+          ...m,
+          os: meta.os || '-',
+          kernel: meta.kernel || '-',
+          version: meta.version || '-',
+          status: meta.status || (m.reachable ? 'active' : 'unreachable'),
+        };
+      }),
+    [metricAgents, agentsById]
+  );
+
+  const reachable = rows.filter((r) => r.reachable);
+  const avgCpu =
+    reachable.length > 0
+      ? reachable.reduce((s, r) => s + (r.cpuPercent || 0), 0) / reachable.length
+      : 0;
+  const avgRam =
+    reachable.length > 0
+      ? reachable.reduce((s, r) => s + (r.ramPercent || 0), 0) / reachable.length
+      : 0;
+
+  const alertsLastHour = overview?.kpis?.criticalAlerts ?? summary.agentsOverThreshold ?? '-';
 
   const showGlobalBanner =
     error ||
@@ -118,39 +70,120 @@ export default function Metrics() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Metriche risorse"
-        subtitle="Prestazioni live da Netdata per ogni endpoint"
+        subtitle="Prestazioni live da Netdata - tabella stile cluster nodes"
       />
 
-      {showGlobalBanner && (
-        <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-          {NETDATA_ERROR_BANNER}
-          {error ? ` (${error})` : ''}
-        </div>
-      )}
+      {showGlobalBanner && <MetricsBanner error={error} />}
 
       <ThresholdAlertBanner alerts={alerts} />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Agenti monitorati" value={summary.totalAgents} variant="info" loading={loading} />
-        <KpiCard label="Soglie superate" value={summary.agentsOverThreshold} variant="warning" loading={loading} />
-        <KpiCard label="Soglia CPU" value={`${thresholds.cpu}%`} variant="ok" loading={loading} />
-        <KpiCard label="Soglia RAM" value={`${thresholds.ram}%`} variant="ok" loading={loading} />
-      </div>
+      <div className="grid grid-cols-12 gap-3">
+        <GrafanaPanel title="Agenti online" className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatValue loading={loading}>{reachable.length}</StatValue>
+          <p className="text-xs text-[var(--text-muted)]">su {rows.length} monitorati</p>
+        </GrafanaPanel>
+        <GrafanaPanel title="CPU media" className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatValue loading={loading}>{avgCpu.toFixed(1)}%</StatValue>
+        </GrafanaPanel>
+        <GrafanaPanel title="RAM media" className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatValue loading={loading}>{avgRam.toFixed(1)}%</StatValue>
+        </GrafanaPanel>
+        <GrafanaPanel title="Alert critici (overview)" className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatValue loading={loading}>{alertsLastHour}</StatValue>
+        </GrafanaPanel>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {agents.map((agent) => (
-          <AgentNetdataCard key={agent.agentId} agent={agent} thresholds={thresholds} />
-        ))}
+        <GrafanaPanel title="Agenti" subtitle="Aggiornamento ogni 10s" className="col-span-12">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Agent name</th>
+                  <th>Memory</th>
+                  <th>CPU</th>
+                  <th>OS</th>
+                  <th>Kernel</th>
+                  <th>Wazuh version</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.agentId}
+                    className={!row.reachable ? 'opacity-60' : undefined}
+                  >
+                    <td>
+                      <Link
+                        to={`/agents/${row.agentId}`}
+                        className="font-medium text-[var(--accent)] hover:underline"
+                      >
+                        {row.agentName}
+                      </Link>
+                      {!row.reachable && (
+                        <p className="text-xs text-[var(--red)] mt-0.5">
+                          {row.error || 'Netdata unreachable'}
+                        </p>
+                      )}
+                    </td>
+                    <td>
+                      {row.reachable ? (
+                        <SegmentBar value={row.ramPercent} />
+                      ) : (
+                        <span className="text-xs text-[var(--text-muted)]">-</span>
+                      )}
+                    </td>
+                    <td>
+                      {row.reachable ? (
+                        <SegmentBar value={row.cpuPercent} />
+                      ) : (
+                        <span className="text-xs text-[var(--text-muted)]">-</span>
+                      )}
+                    </td>
+                    <td className="text-[var(--text-secondary)]">{row.os}</td>
+                    <td className="font-mono text-xs text-[var(--text-muted)]">{row.kernel}</td>
+                    <td className="font-mono text-xs">{row.version}</td>
+                    <td>
+                      <StatusBadge status={row.status} reachable={row.reachable} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loading && rows.length === 0 && (
+              <p className="text-center text-[var(--text-secondary)] py-8 text-sm">
+                Nessun agente attivo con metriche disponibili.
+              </p>
+            )}
+          </div>
+          <p className="text-xs text-[var(--text-muted)] mt-3">
+            Soglie: CPU {thresholds.cpu}% / RAM {thresholds.ram}%
+          </p>
+        </GrafanaPanel>
       </div>
-
-      {!loading && agents.length === 0 && (
-        <div className="card text-center py-12 text-secondary">
-          Nessun agente attivo con metriche disponibili.
-        </div>
-      )}
     </div>
   );
 }
+
+function MetricsBanner({ error }) {
+  return (
+    <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30 text-[var(--red)] text-sm">
+      {NETDATA_ERROR_BANNER}
+      {error ? ` (${error})` : ''}
+    </div>
+  );
+}
+
+function StatusBadge({ status, reachable }) {
+  const active = reachable && status === 'active';
+  const label = active ? 'active' : status || 'unreachable';
+  const cls = active
+    ? 'bg-[rgba(115,191,105,0.15)] text-[var(--green)]'
+    : 'bg-[rgba(242,73,92,0.12)] text-[var(--red)]';
+  return (
+    <span className={`text-xs font-medium px-2 py-0.5 rounded ${cls}`}>{label}</span>
+  );
+}
+

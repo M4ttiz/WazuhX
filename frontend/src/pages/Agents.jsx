@@ -3,6 +3,7 @@ import { Server } from 'lucide-react';
 import { useWazuh } from '../hooks/useWazuh';
 import AgentCard from '../components/AgentCard';
 import PageHeader from '../components/PageHeader';
+import GrafanaPanel from '../components/GrafanaPanel';
 import EmptyState from '../components/EmptyState';
 
 export default function Agents() {
@@ -18,7 +19,7 @@ export default function Agents() {
         subtitle="Monitora tutti gli agent Wazuh connessi"
       />
 
-      <div className="card flex flex-wrap gap-4">
+      <GrafanaPanel className="flex flex-wrap gap-4">
         <select
           className="select"
           value={filters.status}
@@ -44,7 +45,7 @@ export default function Agents() {
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           aria-label="Cerca agente"
         />
-      </div>
+      </GrafanaPanel>
 
       {error && <EmptyState icon={Server} title="Errore caricamento" message={error} />}
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const wazuh = require('../services/wazuhClient');
 const indexer = require('../services/wazuhIndexer');
+const { processAlerts } = require('../services/alertsFilterService');
 const { sendData } = require('../utils/response');
 const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
 
@@ -8,6 +9,7 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
+    const showNoise = req.query.showNoise === 'true';
     const filters = {
       agentId: req.query.agentId,
       severityMin: req.query.severityMin,
@@ -20,10 +22,32 @@ router.get('/', async (req, res, next) => {
       to: req.query.to,
       page: req.query.page,
       limit: req.query.limit,
+      showNoise,
     };
     const key = getCacheKey('alerts', filters);
     const result = await withCache(req, res, key, liveTtl, () => wazuh.getAlerts(filters));
-    sendData(res, result);
+    const raw = result.data || [];
+    const { alerts: processed, meta } = processAlerts(raw, { showNoise });
+    const page = parseInt(filters.page, 10) || 1;
+    const limit = parseInt(filters.limit, 10) || 25;
+    const start = (page - 1) * limit;
+    const pageData = processed.slice(start, start + limit);
+    sendData(res, {
+      ...result,
+      data: pageData,
+      pagination: {
+        page,
+        limit,
+        total: processed.length,
+        totalPages: Math.max(1, Math.ceil(processed.length / limit)),
+      },
+      stats: {
+        hiddenNoiseCount: meta.hiddenNoise,
+        dedupedGroups: meta.dedupedGroups,
+        totalRaw: meta.totalRaw,
+        totalVisible: meta.totalVisible,
+      },
+    });
   } catch (err) {
     next(err);
   }

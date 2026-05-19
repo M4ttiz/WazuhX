@@ -3,48 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-base: #0f172a;
-  --bg-surface: #1e293b;
-  --bg-card: #1e293b;
-  --bg-hover: #334155;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-subtle: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #f59e0b;
-  --accent-hover: #d97706;
-  --accent-light: rgba(245, 158, 11, 0.15);
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --bg-base: #0f1117;
+  --bg-panel: #181b24;
+  --bg-panel-hover: #1f2335;
+  --bg-primary: #0f1117;
+  --bg-secondary: #181b24;
+  --bg-surface: #181b24;
+  --bg-card: #181b24;
+  --bg-hover: #1f2335;
+  --border: #2a2f45;
+  --border-subtle: #2a2f45;
+  --text-primary: #d8d9da;
+  --text-secondary: #8a8fa3;
+  --text-muted: #5a5f72;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: rgba(59, 130, 246, 0.15);
+  --green: #73bf69;
+  --yellow: #f5a623;
+  --orange: #ff7f50;
+  --red: #f2495c;
+  --purple: #b877d9;
+  --success: #73bf69;
+  --warning: #f5a623;
+  --danger: #f2495c;
   --info: #3b82f6;
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --font: 'Inter', system-ui, sans-serif;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-html.light {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-base: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #f1f5f9;
-  --border: #e2e8f0;
-  --border-subtle: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --accent-light: rgba(245, 158, 11, 0.12);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -75,10 +66,10 @@ html.light {
   }
 
   .card {
-    background: var(--bg-card);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 20px;
+    padding: 16px;
     box-shadow: var(--shadow);
     transition: background 150ms ease;
   }
@@ -92,7 +83,7 @@ html.light {
 
   .btn-primary {
     background: var(--accent);
-    color: #0f172a;
+    color: #fff;
     border-radius: var(--radius-md);
     padding: 10px 16px;
     min-height: 44px;
@@ -112,7 +103,7 @@ html.light {
 
   .btn-secondary {
     background: transparent;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--border);
     color: var(--text-primary);
     border-radius: var(--radius-md);
     padding: 10px 16px;
@@ -123,7 +114,7 @@ html.light {
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--bg-secondary);
+    background: var(--bg-panel-hover);
   }
 
   .btn-icon {
@@ -136,9 +127,9 @@ html.light {
   }
 
   .btn-danger {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(242, 73, 92, 0.15);
+    color: var(--red);
+    border: 1px solid rgba(242, 73, 92, 0.35);
     border-radius: var(--radius-md);
     padding: 8px 16px;
     font-weight: 500;
@@ -156,14 +147,14 @@ html.light {
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background: var(--bg-hover);
+    background: var(--bg-panel-hover);
     color: var(--text-primary);
   }
 
   .input,
   .select {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     padding: 10px 12px;
@@ -196,29 +187,30 @@ html.light {
   }
 
   .table-wrap thead {
-    background: var(--bg-secondary);
+    background: var(--bg-base);
   }
 
   .table-wrap th {
-    padding: 12px;
+    padding: 10px 12px;
     text-align: left;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
     border-bottom: 1px solid var(--border);
   }
 
   .table-wrap td {
     padding: 0 12px;
-    height: 44px;
-    border-bottom: 1px solid var(--border-subtle);
+    height: 40px;
+    border-bottom: 1px solid var(--border);
     color: var(--text-primary);
+    font-size: 13px;
   }
 
   .table-wrap tbody tr:nth-child(even) {
-    background: rgba(30, 41, 59, 0.5);
+    background: rgba(15, 17, 23, 0.5);
   }
 
   .table-wrap tbody tr {
@@ -226,7 +218,7 @@ html.light {
   }
 
   .table-wrap tbody tr:hover {
-    background: var(--bg-hover);
+    background: var(--bg-panel-hover);
   }
 
   .table-wrap tbody tr:last-child td {
@@ -236,9 +228,9 @@ html.light {
   .skeleton {
     background: linear-gradient(
       90deg,
-      var(--bg-hover) 0%,
-      #475569 50%,
-      var(--bg-hover) 100%
+      var(--bg-panel-hover) 0%,
+      #2a2f45 50%,
+      var(--bg-panel-hover) 100%
     );
     background-size: 200% 100%;
     border-radius: var(--radius-sm);
@@ -251,21 +243,22 @@ html.light {
   }
 
   .nav-link-active {
-    background: rgba(59, 130, 246, 0.15);
+    background: var(--accent-light);
     color: #93c5fd;
-    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   }
 
   .tab-active {
     background: var(--accent-light);
-    color: var(--accent);
+    color: #93c5fd;
     border-bottom: 2px solid var(--accent);
   }
 
   .banner-critical {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    background: rgba(242, 73, 92, 0.12);
+    border: 1px solid rgba(242, 73, 92, 0.35);
+    color: var(--red);
     border-radius: var(--radius-md);
     padding: 12px 16px;
     font-weight: 600;
@@ -273,9 +266,9 @@ html.light {
   }
 
   .banner-warning {
-    background: rgba(245, 158, 11, 0.12);
-    border-bottom: 1px solid rgba(245, 158, 11, 0.25);
-    color: var(--accent);
+    background: rgba(245, 166, 35, 0.1);
+    border-bottom: 1px solid rgba(245, 166, 35, 0.25);
+    color: var(--yellow);
     text-align: center;
     padding: 8px 16px;
     font-size: 13px;
@@ -283,10 +276,14 @@ html.light {
   }
 
   .kpi-hero {
-    background: var(--bg-card);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 24px;
+    padding: 20px;
     box-shadow: var(--shadow-md);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
   }
 }

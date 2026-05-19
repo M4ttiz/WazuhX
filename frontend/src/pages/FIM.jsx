@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import { useWazuh } from '../hooks/useWazuh';
 import PageHeader from '../components/PageHeader';
+import GrafanaPanel from '../components/GrafanaPanel';
 import EmptyState from '../components/EmptyState';
 import { FileSearch } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
@@ -101,7 +102,7 @@ export default function FIM() {
   const toggleType = (type) => setTypes((t) => ({ ...t, [type]: !t[type] }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title="File Integrity Monitoring" subtitle="Eventi di modifica file con analisi visiva" />
 
       {error && <EmptyState icon={FileSearch} title="Errore" message={error} />}
@@ -122,9 +123,8 @@ export default function FIM() {
             ))}
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="card">
-              <p className="card-title">Timeline eventi</p>
+          <div className="grid grid-cols-12 gap-3">
+            <GrafanaPanel title="Timeline eventi" className="col-span-12 lg:col-span-6">
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={timeline}>
                   <CartesianGrid {...chartGridProps} />
@@ -134,9 +134,8 @@ export default function FIM() {
                   <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-            <div className="card">
-              <p className="card-title">Top directory</p>
+            </GrafanaPanel>
+            <GrafanaPanel title="Top directory" className="col-span-12 lg:col-span-6">
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={dirChart} layout="vertical">
                   <CartesianGrid {...chartGridProps} />
@@ -146,12 +145,11 @@ export default function FIM() {
                   <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </GrafanaPanel>
           </div>
 
           {highRisk.length > 0 && (
-            <div className="card border-red-500/30 bg-red-500/5">
-              <p className="card-title text-red-400">Percorsi ad alto rischio</p>
+            <GrafanaPanel title="Percorsi ad alto rischio" className="border-red-500/30 bg-red-500/5">
               <ul className="text-sm space-y-1 max-h-32 overflow-y-auto">
                 {highRisk.slice(0, 20).map((e) => (
                   <li key={e.id} className="font-mono text-xs text-[#f1f5f9]">
@@ -159,10 +157,10 @@ export default function FIM() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </GrafanaPanel>
           )}
 
-          <div className="card flex flex-wrap gap-4 items-end">
+          <GrafanaPanel className="flex flex-wrap gap-4 items-end">
             <input
               className="input flex-1 min-w-[200px]"
               placeholder="Filtra per path..."
@@ -175,7 +173,7 @@ export default function FIM() {
                 {t}
               </label>
             ))}
-          </div>
+          </GrafanaPanel>
         </>
       )}
 

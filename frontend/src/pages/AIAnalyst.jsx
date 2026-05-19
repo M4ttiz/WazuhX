@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAI } from '../hooks/useAI';
 import ChatBox from '../components/ChatBox';
+import GrafanaPanel from '../components/GrafanaPanel';
 
 export default function AIAnalyst() {
   const { messages, loading, briefing, loadBriefing, sendMessage } = useAI();
@@ -10,13 +11,13 @@ export default function AIAnalyst() {
   }, [loadBriefing]);
 
   return (
-    <div className="card min-h-[600px]">
+    <GrafanaPanel className="min-h-[600px] col-span-12">
       <ChatBox
         messages={messages}
         onSend={sendMessage}
         loading={loading}
         briefing={briefing}
       />
-    </div>
+    </GrafanaPanel>
   );
 }

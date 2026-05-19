@@ -7,6 +7,7 @@ import SeverityBadge from '../components/SeverityBadge';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 import RealtimeMetricsPanel from '../components/RealtimeMetricsPanel';
 import PageHeader from '../components/PageHeader';
+import GrafanaPanel from '../components/GrafanaPanel';
 import { useAI } from '../hooks/useAI';
 import {
   formatBytes, formatUptime, formatDate, formatLoadAverage, formatMetricsSource,

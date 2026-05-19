@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiDownload } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useWazuh } from '../hooks/useWazuh';
+import GrafanaPanel from '../components/GrafanaPanel';
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview KPI' },
@@ -68,8 +69,7 @@ export default function ReportGenerator() {
 
   return (
     <div className="max-w-2xl">
-      <div className="card space-y-4">
-        <p className="card-title mb-0">Configurazione report</p>
+      <GrafanaPanel title="Configurazione report" className="space-y-4 col-span-12">
 
         <label className="block">
           <span className="text-secondary text-xs">Periodo</span>
@@ -180,7 +180,7 @@ export default function ReportGenerator() {
         >
           {generating ? 'Generazione in corso...' : 'Genera Report'}
         </button>
-      </div>
+      </GrafanaPanel>
     </div>
   );
 }

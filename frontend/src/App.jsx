@@ -20,7 +20,7 @@ export default function App() {
   const { isMock } = useDataSource();
 
   return (
-    <div className="min-h-screen bg-[#0f172a]">
+    <div className="min-h-screen bg-[var(--bg-base)]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:ml-[220px] ml-0 min-h-screen flex flex-col">
         {isMock && (
@@ -29,7 +29,7 @@ export default function App() {
           </div>
         )}
         <Header onMenuOpen={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/agents" element={<Agents />} />
