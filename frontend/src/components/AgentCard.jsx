@@ -30,7 +30,18 @@ export default function AgentCard({ agent }) {
           <h3 className="font-semibold text-sm text-primary">{agent.name}</h3>
           <p className="text-secondary text-xs font-mono mt-0.5">{agent.ip}</p>
         </div>
-        <StatusDot status={agent.status} />
+        <div className="flex items-center gap-2">
+          {agent.netdataAvailable && (
+            <span
+              className="text-sm leading-none"
+              title="Netdata: metriche real-time disponibili"
+              aria-label="Netdata disponibile"
+            >
+              ⚡
+            </span>
+          )}
+          <StatusDot status={agent.status} />
+        </div>
       </div>
       <p className="text-xs text-secondary mb-3">{agent.os}</p>
       <div className="flex justify-between text-xs">

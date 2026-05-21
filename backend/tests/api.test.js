@@ -66,10 +66,23 @@ describe('WazuhX API', () => {
     expect(res.body.data.id).toBe('001');
   });
 
-  it('GET /api/agents/:id/stats returns stats', async () => {
+  it('GET /api/agents returns netdataAvailable on each agent', async () => {
+    const res = await request(app).get('/api/agents');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThan(0);
+    res.body.data.forEach((agent) => {
+      expect(typeof agent.netdataAvailable).toBe('boolean');
+    });
+  });
+
+  it('GET /api/agents/:id/stats returns netdata-shaped stats', async () => {
     const res = await request(app).get('/api/agents/001/stats');
     expect(res.status).toBe(200);
-    expect(res.body.data.cpuUsage).toBeDefined();
+    expect(res.body.data.source).toBe('netdata');
+    expect(res.body.data.cpu).toBeDefined();
+    expect(res.body.data.cpu.percent).toBeDefined();
+    expect(res.headers['x-data-source']).toBe('netdata');
   });
 
   it('GET /api/agents/:id/processes returns processes', async () => {

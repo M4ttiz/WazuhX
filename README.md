@@ -107,15 +107,38 @@ networks:
 
 Ensure `wazuh-manager` hostname resolves inside the network.
 
-## Netdata (metrics — required)
+## Netdata Setup (Endpoint Monitoring)
 
-WazuhX uses Wazuh for **security** data and **Netdata** on each agent host for **all** resource metrics. There is **no syscollector fallback**.
+WazuhX discovers Netdata automatically on each monitored endpoint. No manual IP configuration is required in the dashboard.
 
-1. Install Netdata on every agent host and expose port **19999**. See [deploy/netdata/README.md](deploy/netdata/README.md).
-2. Set `NETDATA_HOST=http://<manager-ip>:19999` in `.env` (example manager: `192.168.50.136`).
-3. The backend reads each agent **IP** from Wazuh and calls Netdata at `http://<agent-ip>:19999/api/v1/data` for `system.cpu`, `system.ram`, `system.net`, `system.io`, and `system.load`.
-4. If Netdata is unreachable, the API returns `error: 'Netdata unreachable'` and the UI shows a red banner.
-5. Fleet **Metriche** refreshes every **5 seconds** (`METRICS_CACHE_TTL_SECONDS=5`).
+### Per ogni nuovo endpoint da monitorare:
+
+1. Install the Wazuh Agent (as per Wazuh documentation)
+2. Install Netdata:
+   ```bash
+   curl https://get.netdata.cloud/kickstart.sh | sh
+   ```
+3. Configure Netdata to accept remote connections:
+   ```bash
+   sudo nano /etc/netdata/netdata.conf
+   ```
+   ```ini
+   [web]
+       bind to = 0.0.0.0
+   ```
+   ```bash
+   sudo systemctl restart netdata
+   ```
+4. (Recommended) Restrict port 19999 to your internal network:
+   ```bash
+   ufw allow from <ip_wazuhx_server> to any port 19999
+   ```
+
+### Come funziona l'auto-discovery
+
+WazuhX reads each agent IP from the Wazuh API and probes `http://<agent_ip>:19999`. When Netdata responds, real-time metrics appear in the **Risorse live** tab with the ⚡ badge on the agents list. If Netdata is not installed, metrics show as unavailable without noisy errors.
+
+See [deploy/netdata/README.md](deploy/netdata/README.md) for deployment details. Fleet **Metriche** refreshes every **5 seconds** (`METRICS_CACHE_TTL_SECONDS=5`).
 
 ## API Endpoints
 
@@ -123,8 +146,9 @@ WazuhX uses Wazuh for **security** data and **Netdata** on each agent host for *
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
 | GET | `/api/overview` | Dashboard KPIs |
-| GET | `/api/agents` | List agents |
+| GET | `/api/agents` | List agents (`netdataAvailable` per agent) |
 | GET | `/api/agents/:id` | Agent detail |
+| GET | `/api/agents/:id/stats` | Live Netdata metrics (CPU/RAM/disk/network) |
 | GET | `/api/alerts` | Paginated alerts |
 | GET | `/api/vulnerabilities` | CVE list |
 | GET | `/api/fim` | FIM events |

@@ -6,6 +6,7 @@ import AlertTable from '../components/AlertTable';
 import SeverityBadge from '../components/SeverityBadge';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 import RealtimeMetricsPanel from '../components/RealtimeMetricsPanel';
+import GaugeChart from '../components/GaugeChart';
 import PageHeader from '../components/PageHeader';
 import GrafanaPanel from '../components/GrafanaPanel';
 import { useAI } from '../hooks/useAI';
@@ -13,7 +14,7 @@ import {
   formatBytes, formatUptime, formatDate, formatLoadAverage, formatMetricsSource,
 } from '../utils/formatters';
 
-const TABS = ['Overview', 'Processi', 'Software', 'Rete', 'Alert', 'Vulnerabilità', 'FIM', 'Compliance', 'AI Analysis'];
+const TABS = ['Overview', 'Risorse live', 'Processi', 'Software', 'Rete', 'Alert', 'Vulnerabilità', 'FIM', 'Compliance', 'AI Analysis'];
 
 export default function AgentDetail() {
   const { id } = useParams();
@@ -21,8 +22,13 @@ export default function AgentDetail() {
   const [analysis, setAnalysis] = useState('');
   const { analyzeAgent, loading: aiLoading } = useAI();
   const resourcesSyscollectorInterval = getRefreshInterval('agent-resources', 60000);
+  const liveStatsInterval = getRefreshInterval('agent-resources', 15000);
 
   const { data: agent, loading } = useWazuh(`/agents/${id}`);
+  const { data: liveStats, loading: liveStatsLoading } = useWazuh(`/agents/${id}/stats`, {
+    skip: tab !== 'Risorse live',
+    refreshInterval: tab === 'Risorse live' ? liveStatsInterval : null,
+  });
   const { data: metricsPayload, loading: metricsLoading, refetch: refetchMetrics } = useWazuh('/metrics', {
     params: { agentId: id },
     refreshInterval: tab === 'Rete' ? resourcesSyscollectorInterval : null,
@@ -104,9 +110,85 @@ export default function AgentDetail() {
         </div>
       )}
 
+      {tab === 'Risorse live' && (
+        <div className="space-y-6">
+          {liveStatsLoading && !liveStats ? (
+            <div className="card skeleton h-48" />
+          ) : (
+            <>
+              {liveStats?.reachable !== false ? (
+                <span
+                  className="inline-block text-xs font-medium px-3 py-1 rounded"
+                  style={{
+                    background: '#00d4ff22',
+                    color: '#00d4ff',
+                    border: '1px solid #00d4ff44',
+                  }}
+                >
+                  ⚡ Netdata · real-time
+                </span>
+              ) : (
+                <span
+                  className="inline-block text-xs font-medium px-3 py-1 rounded text-[#94a3b8]"
+                  style={{
+                    background: 'rgba(148, 163, 184, 0.12)',
+                    border: '1px solid rgba(148, 163, 184, 0.3)',
+                  }}
+                >
+                  Netdata non disponibile
+                </span>
+              )}
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="card flex justify-center py-4">
+                  <GaugeChart value={liveStats?.cpu?.percent} label="CPU" />
+                </div>
+                <div className="card flex justify-center py-4">
+                  <GaugeChart value={liveStats?.ram?.percent} label="RAM" />
+                </div>
+                <div className="card flex justify-center py-4">
+                  <GaugeChart value={liveStats?.disk?.percent} label="Disco" />
+                </div>
+              </div>
+              <div className="card grid md:grid-cols-2 gap-4 text-sm text-[#94a3b8]">
+                <p>
+                  RX:{' '}
+                  <span className="font-mono text-[#f1f5f9]">
+                    {liveStats?.network?.recvKbps != null
+                      ? `${liveStats.network.recvKbps} kbps`
+                      : '--'}
+                  </span>
+                </p>
+                <p>
+                  TX:{' '}
+                  <span className="font-mono text-[#f1f5f9]">
+                    {liveStats?.network?.sentKbps != null
+                      ? `${liveStats.network.sentKbps} kbps`
+                      : '--'}
+                  </span>
+                </p>
+                {liveStats?.ram?.usedMB != null && liveStats?.ram?.totalMB != null && (
+                  <p className="md:col-span-2">
+                    RAM:{' '}
+                    <span className="font-mono text-[#f1f5f9]">
+                      {liveStats.ram.usedMB} / {liveStats.ram.totalMB} MB
+                    </span>
+                  </p>
+                )}
+                {liveStats?.netdataInfo?.version && (
+                  <p className="md:col-span-2 text-xs text-[#64748b]">
+                    Netdata {liveStats.netdataInfo.version}
+                    {liveStats.netdataInfo.os ? ` · ${liveStats.netdataInfo.os}` : ''}
+                  </p>
+                )}
+              </div>
+              <RealtimeMetricsPanel agentId={id} enabled />
+            </>
+          )}
+        </div>
+      )}
+
       {tab === 'Processi' && (
         <div className="space-y-6">
-          <RealtimeMetricsPanel agentId={id} enabled />
           <div className="card p-0 overflow-hidden">
             <p className="card-title px-5 pt-5">Top processi</p>
             <div className="table-wrap border-0 border-t border-[rgba(255,255,255,0.1)] rounded-none">

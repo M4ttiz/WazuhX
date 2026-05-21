@@ -12,8 +12,7 @@ const config = {
 const STANDARD_CHARTS = ['system.cpu', 'system.ram', 'system.net', 'system.io', 'system.load'];
 
 function getDefaultNetdataBase() {
-  const raw = (process.env.NETDATA_HOST || `${config.scheme}://localhost:${config.port}`).trim();
-  return raw.replace(/\/$/, '');
+  return `${config.scheme}://localhost:${config.port}`;
 }
 
 function isValidHostIp(hostIp) {
