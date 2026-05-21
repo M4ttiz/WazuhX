@@ -147,7 +147,8 @@ See [deploy/glances/README.md](deploy/glances/README.md). Fleet **Metriche** ref
 | GET | `/api/agents/:id` | Agent detail |
 | GET | `/api/agents/:id/stats` | Live Glances metrics (CPU/RAM/disk/network) |
 | GET | `/api/alerts` | Paginated alerts |
-| GET | `/api/vulnerabilities` | CVE list |
+| GET | `/api/vulnerabilities` | CVE list (cached 1h; indexer-first on 4.7+) |
+| GET | `/api/debug/agents` | Agent IPs + Glances discovery status |
 | GET | `/api/fim` | FIM events |
 | GET | `/api/compliance` | SCA/compliance |
 | GET | `/api/metrics` | Fleet metrics from Glances (`?agentId=`) |
@@ -181,10 +182,16 @@ See [deploy/glances/README.md](deploy/glances/README.md). Fleet **Metriche** ref
 - App shows demo banner and serves mock data (`X-Data-Source: mock`)
 - Set `USE_MOCK=true` for local development without Wazuh
 
+### CVE page empty (Wazuh 4.7.5+)
+
+- Configure `WAZUH_INDEXER_URL` and credentials — CVE data is read from `wazuh-states-vulnerabilities-*` (manager API `/vulnerability/{id}` is deprecated).
+- Backend falls back to `/vulnerability`, `/vulnerability/{id}/cve`, and `/cve/{id}` per agent when indexer returns no hits.
+- Check indexer: `GET /api/debug/agents` includes `indexerLastError`.
+
 ### Metrics empty or stale
 
 - Install **Glances** on each agent host (see [deploy/glances/README.md](deploy/glances/README.md)).
-- Verify discovery: agent list should show `liveMetricsAvailable: true` within ~60s.
+- Verify discovery: agent list should show `liveMetricsAvailable: true` (badge updates even when agent list is cached).
 - Clear cache after changes: `curl -X DELETE http://localhost:3001/api/cache`
 
 ### Glances unreachable from WazuhX

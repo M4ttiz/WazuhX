@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { formatRelative, isStale } from '../utils/formatters';
 
@@ -17,7 +18,7 @@ function StatusDot({ status }) {
   );
 }
 
-export default function AgentCard({ agent }) {
+function AgentCard({ agent }) {
   const stale = isStale(agent.lastKeepAlive);
 
   return (
@@ -59,3 +60,5 @@ export default function AgentCard({ agent }) {
     </Link>
   );
 }
+
+export default memo(AgentCard);

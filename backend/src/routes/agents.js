@@ -7,6 +7,17 @@ const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
 const router = express.Router();
 const statsCacheTtl = 15;
 
+function enrichAgentsWithGlances(agents) {
+  const discovery = glancesService.getDiscoveryStatus();
+  return agents.map((a) => {
+    const agentKey = wazuh.formatAgentId(a.id);
+    return {
+      ...a,
+      liveMetricsAvailable: discovery[agentKey]?.liveMetricsAvailable ?? false,
+    };
+  });
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const filters = {
@@ -21,17 +32,15 @@ router.get('/', async (req, res, next) => {
       const agents = wazuhResult.data || [];
 
       await Promise.allSettled(
-        agents.map((a) => glancesService.isGlancesAvailable(a.id, a.ip))
+        agents.map((a) => glancesService.isGlancesAvailable(wazuh.formatAgentId(a.id), a.ip))
       );
 
-      const discovery = glancesService.getDiscoveryStatus();
-      const enriched = agents.map((a) => ({
-        ...a,
-        liveMetricsAvailable: discovery[String(a.id)]?.liveMetricsAvailable ?? false,
-      }));
-
-      return { ...wazuhResult, data: enriched };
+      return { ...wazuhResult, data: enrichAgentsWithGlances(agents) };
     });
+
+    if (result?.data?.length) {
+      result.data = enrichAgentsWithGlances(result.data);
+    }
     sendData(res, result);
   } catch (err) {
     next(err);
@@ -41,8 +50,31 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const key = getCacheKey('agent', { id: req.params.id });
-    const result = await withCache(req, res, key, liveTtl, () => wazuh.getAgent(req.params.id));
+    const result = await withCache(req, res, key, liveTtl, async () => {
+      const agentResult = await wazuh.getAgent(req.params.id);
+      if (!agentResult.data) return agentResult;
+
+      const agent = agentResult.data;
+      await glancesService.isGlancesAvailable(wazuh.formatAgentId(agent.id), agent.ip);
+      const discovery = glancesService.getDiscoveryStatus();
+      const agentKey = wazuh.formatAgentId(agent.id);
+
+      return {
+        ...agentResult,
+        data: {
+          ...agent,
+          liveMetricsAvailable: discovery[agentKey]?.liveMetricsAvailable ?? false,
+        },
+      };
+    });
     if (!result.data) return res.status(404).json({ error: 'Agent not found' });
+
+    const agentKey = wazuh.formatAgentId(result.data.id);
+    const discovery = glancesService.getDiscoveryStatus();
+    result.data = {
+      ...result.data,
+      liveMetricsAvailable: discovery[agentKey]?.liveMetricsAvailable ?? result.data.liveMetricsAvailable ?? false,
+    };
     sendData(res, result);
   } catch (err) {
     next(err);

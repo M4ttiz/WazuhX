@@ -14,7 +14,7 @@ const config = {
 };
 
 const API_VERSIONS = ['/api/4', '/api/3'];
-const DISCOVERY_TTL_MS = 60 * 1000;
+const DISCOVERY_TTL_MS = parseInt(process.env.GLANCES_DISCOVERY_TTL_MS || '300000', 10);
 const discoveryCache = new Map();
 
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 50 });
@@ -146,8 +146,12 @@ async function probeGlances(agentIp) {
   return Boolean(res?.data && res.data.cpu != null);
 }
 
+function normalizeDiscoveryId(agentId) {
+  return wazuh.formatAgentId(agentId);
+}
+
 function getCachedDiscovery(agentId) {
-  const entry = discoveryCache.get(String(agentId));
+  const entry = discoveryCache.get(normalizeDiscoveryId(agentId));
   if (!entry) return null;
   if (Date.now() - entry.checkedAt > DISCOVERY_TTL_MS) return null;
   return entry;
@@ -155,7 +159,7 @@ function getCachedDiscovery(agentId) {
 
 async function mockGlancesAvailable(agentId, agentIp) {
   if (!isValidAgentIp(agentIp)) return false;
-  const id = String(agentId);
+  const id = normalizeDiscoveryId(agentId);
   const cached = getCachedDiscovery(id);
   if (cached) return cached.available;
 
@@ -173,7 +177,7 @@ async function isGlancesAvailable(agentId, agentIp) {
     return mockGlancesAvailable(agentId, agentIp);
   }
 
-  const id = String(agentId);
+  const id = normalizeDiscoveryId(agentId);
   const cached = getCachedDiscovery(id);
   if (cached) return cached.available;
 
@@ -198,7 +202,7 @@ async function isGlancesAvailable(agentId, agentIp) {
 }
 
 function invalidateDiscovery(agentId) {
-  discoveryCache.delete(String(agentId));
+  discoveryCache.delete(normalizeDiscoveryId(agentId));
 }
 
 async function getMetrics(agentIp) {

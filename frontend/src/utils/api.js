@@ -19,9 +19,11 @@ function normalizeJsonResponse(json) {
 }
 
 export async function apiFetch(path, options = {}) {
+  const { signal, ...fetchOptions } = options;
   const res = await fetch(`/api${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
+    headers: { 'Content-Type': 'application/json', ...fetchOptions.headers },
+    signal,
+    ...fetchOptions,
   });
 
   const source = res.headers.get('X-Data-Source');

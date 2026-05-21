@@ -14,7 +14,7 @@ import {
   formatBytes, formatUptime, formatDate, formatLoadAverage, formatMetricsSource,
 } from '../utils/formatters';
 
-const TABS = ['Overview', 'Risorse live', 'Processi', 'Software', 'Rete', 'Alert', 'Vulnerabilità', 'FIM', 'Compliance', 'AI Analysis'];
+const TABS = ['Overview', 'Risorse live', 'Software', 'Rete', 'Alert', 'Vulnerabilità', 'FIM', 'Compliance', 'AI Analysis'];
 
 export default function AgentDetail() {
   const { id } = useParams();
@@ -49,7 +49,6 @@ export default function AgentDetail() {
         source: agentMetrics.source,
       }
     : null;
-  const { data: processes } = useWazuh(`/agents/${id}/processes`, { skip: tab !== 'Processi' });
   const { data: alertsData } = useWazuh('/alerts', {
     params: { agentId: id, limit: 50 },
     skip: tab !== 'Alert',
@@ -184,36 +183,6 @@ export default function AgentDetail() {
               <RealtimeMetricsPanel agentId={id} enabled />
             </>
           )}
-        </div>
-      )}
-
-      {tab === 'Processi' && (
-        <div className="space-y-6">
-          <div className="card p-0 overflow-hidden">
-            <p className="card-title px-5 pt-5">Top processi</p>
-            <div className="table-wrap border-0 border-t border-[rgba(255,255,255,0.1)] rounded-none">
-              <table>
-                <thead>
-                  <tr>
-                    <th>PID</th>
-                    <th>Nome</th>
-                    <th>CPU%</th>
-                    <th>MEM</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(processes || []).map((p) => (
-                    <tr key={p.pid}>
-                      <td className="font-mono text-xs">{p.pid}</td>
-                      <td>{p.name}</td>
-                      <td>{p.cpu}%</td>
-                      <td className="font-mono text-xs">{p.memory}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       )}
 

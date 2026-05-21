@@ -33,14 +33,15 @@ export function useWazuh(path, options = {}) {
   const url = queryString ? `${path}?${queryString}` : path;
 
   const fetchData = useCallback(
-    async (silent = false) => {
+    async (silent = false, signal) => {
       if (skip) return;
       try {
         if (!silent) setLoading(true);
         setError(null);
-        const result = await apiFetch(url);
+        const result = await apiFetch(url, { signal });
         setData(result);
       } catch (err) {
+        if (err.name === 'AbortError') return;
         setError(err.message);
       } finally {
         if (!silent) setLoading(false);
@@ -50,8 +51,11 @@ export function useWazuh(path, options = {}) {
   );
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData, refreshSignal]);
+    if (skip) return undefined;
+    const controller = new AbortController();
+    fetchData(false, controller.signal);
+    return () => controller.abort();
+  }, [fetchData, refreshSignal, skip]);
 
   useEffect(() => {
     if (!refreshInterval || skip) return undefined;
