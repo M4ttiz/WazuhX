@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
@@ -7,8 +7,8 @@ import GrafanaPanel from '../components/GrafanaPanel';
 import SegmentBar from '../components/SegmentBar';
 import ThresholdAlertBanner from '../components/ThresholdAlertBanner';
 
-const NETDATA_ERROR_BANNER =
-  'Netdata not reachable - check that Netdata is running on the target host (port 19999)';
+const GLANCES_ERROR_BANNER =
+  'Glances non raggiungibile - verifica che Glances sia in esecuzione sull\'host (porta 61208)';
 
 function StatValue({ loading, children }) {
   if (loading) return <div className="skeleton h-8 w-16" />;
@@ -62,8 +62,8 @@ export default function Metrics() {
 
   const showGlobalBanner =
     error ||
-    data?.error === 'Netdata unreachable' ||
-    summary.netdataUnreachable;
+    data?.error === 'Glances unreachable' ||
+    summary.glancesUnreachable;
 
   if (loading && !data) {
     return <div className="skeleton h-64 card" />;
@@ -73,7 +73,7 @@ export default function Metrics() {
     <div className="space-y-4">
       <PageHeader
         title="Metriche risorse"
-        subtitle="Prestazioni live da Netdata - tabella stile cluster nodes"
+        subtitle="Prestazioni live da Glances - tabella stile cluster nodes"
       />
 
       {showGlobalBanner && <MetricsBanner error={error} />}
@@ -124,7 +124,7 @@ export default function Metrics() {
                       </Link>
                       {!row.reachable && (
                         <p className="text-xs text-[var(--red)] mt-0.5">
-                          {row.error || 'Netdata unreachable'}
+                          {row.error || 'Glances unreachable'}
                         </p>
                       )}
                     </td>
@@ -170,7 +170,7 @@ export default function Metrics() {
 function MetricsBanner({ error }) {
   return (
     <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30 text-[var(--red)] text-sm">
-      {NETDATA_ERROR_BANNER}
+      {GLANCES_ERROR_BANNER}
       {error ? ` (${error})` : ''}
     </div>
   );

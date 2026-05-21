@@ -1,9 +1,9 @@
 const mock = require('../mock/mockData');
 const wazuh = require('./wazuhClient');
-const netdata = require('./netdataClient');
+const glancesService = require('./glancesService');
 const {
   getThresholds,
-  normalizeNetdataAgentMetrics,
+  normalizeGlancesAgentMetrics,
   evaluateThresholds,
   metricsToLegacyStats,
 } = require('./metricsNormalizer');
@@ -14,21 +14,26 @@ function getCooldownMs() {
   return parseInt(process.env.METRICS_ALERT_COOLDOWN_SECONDS || '600', 10) * 1000;
 }
 
-async function buildAgentMetricsFromNetdata(agentMeta) {
+async function buildAgentMetricsFromGlances(agentMeta) {
   const hostIp = agentMeta.ip;
 
-  const [realtime, chartBundle] = await Promise.all([
-    netdata.getRealtimeMetrics(hostIp),
-    netdata.fetchAllCharts(hostIp, { points: 60, after: -60 }),
+  const [metrics, historyBundle] = await Promise.all([
+    glancesService.getAgentMetrics(agentMeta.id, hostIp),
+    glancesService.getHistory(hostIp, 60).catch(() => ({ history: [], cpu: [], ram: [] })),
   ]);
 
-  const metrics = normalizeNetdataAgentMetrics(agentMeta, hostIp, realtime, chartBundle);
+  const normalized = normalizeGlancesAgentMetrics(
+    agentMeta,
+    hostIp,
+    metrics || glancesService.emptyMetrics(),
+    historyBundle
+  );
   const thresholds = getThresholds();
-  const thresholdAlerts = metrics.reachable
-    ? evaluateThresholds(metrics, thresholds, cooldownState, getCooldownMs())
+  const thresholdAlerts = normalized.reachable
+    ? evaluateThresholds(normalized, thresholds, cooldownState, getCooldownMs())
     : [];
 
-  return { ...metrics, thresholdAlerts };
+  return { ...normalized, thresholdAlerts };
 }
 
 async function getMetrics(agentId) {
@@ -54,10 +59,10 @@ async function getMetrics(agentId) {
           totalAgents: 0,
           agentsOverThreshold: 0,
           lastPollAt: new Date().toISOString(),
-          netdataUnreachable: true,
+          glancesUnreachable: true,
         },
-        error: 'Netdata unreachable',
-        source: 'netdata',
+        error: 'Glances unreachable',
+        source: 'glances',
       };
     }
     agents = [{ id: found.id, name: found.name, ip: found.ip }];
@@ -66,7 +71,7 @@ async function getMetrics(agentId) {
     agents = (active.data || []).map((a) => ({ id: a.id, name: a.name, ip: a.ip }));
   }
 
-  const agentMetrics = await Promise.all(agents.map((a) => buildAgentMetricsFromNetdata(a)));
+  const agentMetrics = await Promise.all(agents.map((a) => buildAgentMetricsFromGlances(a)));
   const alerts = agentMetrics.flatMap((m) => m.thresholdAlerts || []);
   const agentsOverThreshold = agentMetrics.filter((m) => m.thresholdAlerts?.length > 0).length;
   const allUnreachable =
@@ -80,10 +85,10 @@ async function getMetrics(agentId) {
       totalAgents: agentMetrics.length,
       agentsOverThreshold,
       lastPollAt: new Date().toISOString(),
-      netdataUnreachable: allUnreachable,
+      glancesUnreachable: allUnreachable,
     },
-    error: allUnreachable ? 'Netdata unreachable' : undefined,
-    source: 'netdata',
+    error: allUnreachable ? 'Glances unreachable' : undefined,
+    source: 'glances',
   };
 }
 
@@ -95,12 +100,12 @@ async function getAgentStatsLegacy(id) {
   const payload = await getMetrics(id);
   const metrics = payload.agents?.[0];
   if (!metrics) {
-    return { data: {}, source: 'netdata' };
+    return { data: {}, source: 'glances' };
   }
 
   return {
     data: metricsToLegacyStats(metrics),
-    source: 'netdata',
+    source: 'glances',
   };
 }
 
@@ -108,5 +113,5 @@ module.exports = {
   getMetrics,
   getAgentStatsLegacy,
   getThresholds,
-  buildAgentMetricsFromNetdata,
+  buildAgentMetricsFromGlances,
 };

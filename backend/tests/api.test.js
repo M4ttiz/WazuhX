@@ -21,16 +21,16 @@ describe('WazuhX API', () => {
     expect(res.headers['x-data-source']).toBe('mock');
   });
 
-  it('GET /api/metrics/realtime/001 returns netdata metrics in mock mode', async () => {
+  it('GET /api/metrics/realtime/001 returns glances metrics in mock mode', async () => {
     const res = await request(app).get('/api/metrics/realtime/001');
     expect(res.status).toBe(200);
     expect(res.body.data.agentId).toBe('001');
     expect(typeof res.body.data.cpu).toBe('number');
     expect(typeof res.body.data.ram).toBe('number');
     expect(typeof res.body.data.disk).toBe('number');
-    expect(res.body.data.diskMetric).toBe('io');
-    expect(res.body.data.diskUnit).toBe('KiB/s');
-    expect(res.body.data.source).toBe('netdata');
+    expect(res.body.data.diskMetric).toBe('percent');
+    expect(res.body.data.diskUnit).toBe('%');
+    expect(res.body.data.source).toBe('glances');
     expect(res.body.data.partial).toBe(false);
     expect(res.body.data.reachable).toBe(true);
     expect(res.body.data.timestamp).toBeDefined();
@@ -48,7 +48,7 @@ describe('WazuhX API', () => {
     expect(res.body.data.agents).toHaveLength(1);
     expect(res.body.data.agents[0].agentId).toBe('001');
     expect(res.body.data.agents[0].cpuPercent).toBeDefined();
-    expect(res.body.data.agents[0].source).toBe('netdata');
+    expect(res.body.data.agents[0].source).toBe('glances');
     expect(res.body.data.agents[0].reachable).toBe(true);
   });
 
@@ -66,23 +66,23 @@ describe('WazuhX API', () => {
     expect(res.body.data.id).toBe('001');
   });
 
-  it('GET /api/agents returns netdataAvailable on each agent', async () => {
+  it('GET /api/agents returns liveMetricsAvailable on each agent', async () => {
     const res = await request(app).get('/api/agents');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeGreaterThan(0);
     res.body.data.forEach((agent) => {
-      expect(typeof agent.netdataAvailable).toBe('boolean');
+      expect(typeof agent.liveMetricsAvailable).toBe('boolean');
     });
   });
 
-  it('GET /api/agents/:id/stats returns netdata-shaped stats', async () => {
+  it('GET /api/agents/:id/stats returns glances-shaped stats', async () => {
     const res = await request(app).get('/api/agents/001/stats');
     expect(res.status).toBe(200);
-    expect(res.body.data.source).toBe('netdata');
+    expect(res.body.data.source).toBe('glances');
     expect(res.body.data.cpu).toBeDefined();
     expect(res.body.data.cpu.percent).toBeDefined();
-    expect(res.headers['x-data-source']).toBe('netdata');
+    expect(res.headers['x-data-source']).toBe('glances');
   });
 
   it('GET /api/agents/:id/processes returns processes', async () => {

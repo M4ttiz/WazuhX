@@ -31,11 +31,11 @@ export default function AgentCard({ agent }) {
           <p className="text-secondary text-xs font-mono mt-0.5">{agent.ip}</p>
         </div>
         <div className="flex items-center gap-2">
-          {agent.netdataAvailable && (
+          {agent.liveMetricsAvailable && (
             <span
               className="text-sm leading-none"
-              title="Netdata: metriche real-time disponibili"
-              aria-label="Netdata disponibile"
+              title="Glances: metriche real-time disponibili"
+              aria-label="Metriche live disponibili"
             >
               ⚡
             </span>

@@ -12,8 +12,8 @@
 
 - Real-time security dashboard (KPI, MITRE heatmap, alert trends)
 - Agent resource metrics (CPU, RAM, disk, uptime, load) with threshold alerts
-- Fleet **Metriche** page and per-agent **Risorse** tab powered by **Netdata only** (per-agent host IP, refresh 5s)
-- Live CPU/RAM/disk **I/O**, network, and load via `GET /api/metrics` and `GET /api/metrics/realtime/:id`
+- Fleet **Metriche** page and per-agent **Risorse live** tab powered by **Glances** (auto-discovery via Wazuh agent IP, refresh 5s)
+- Live CPU/RAM/disk %, network via `GET /api/metrics` and `GET /api/metrics/realtime/:id`
 - Alert management with MITRE mapping and CSV export
 - Vulnerability (CVE) tracking with NVD links
 - File Integrity Monitoring (FIM)
@@ -87,10 +87,11 @@ Frontend: http://localhost:5173 (proxies `/api` → backend :3001)
 | `METRICS_RAM_THRESHOLD` | RAM alert threshold (%) | `90` |
 | `METRICS_DISK_THRESHOLD` | Disk alert threshold (%) | `85` |
 | `METRICS_CACHE_TTL_SECONDS` | Metrics API cache | `30` |
-| `NETDATA_PORT` | Netdata HTTP port on agent hosts | `19999` |
-| `NETDATA_SCHEME` | `http` or `https` | `http` |
-| `NETDATA_TIMEOUT_MS` | Netdata request timeout | `2500` |
-| `NETDATA_ENABLED` | Disable Netdata calls | `true` |
+| `GLANCES_PORT` | Glances HTTP port on agent hosts | `61208` |
+| `GLANCES_SCHEME` | `http` or `https` | `http` |
+| `GLANCES_TIMEOUT_MS` | Glances request timeout | `2500` |
+| `GLANCES_ENABLED` | Disable Glances calls | `true` |
+| `GLANCES_USER` / `GLANCES_PASSWORD` | Optional Glances API auth | — |
 | `REALTIME_METRICS_CACHE_TTL_MS` | Cache for `GET /metrics/realtime/:id` (ms, max 5000) | `2000` |
 | `PORT` | Backend port | `3001` |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | Allow self-signed Wazuh certs | `0` (Docker) |
@@ -107,38 +108,34 @@ networks:
 
 Ensure `wazuh-manager` hostname resolves inside the network.
 
-## Netdata Setup (Endpoint Monitoring)
+## Glances Setup (Endpoint Monitoring)
 
-WazuhX discovers Netdata automatically on each monitored endpoint. No manual IP configuration is required in the dashboard.
+WazuhX discovers **Glances** automatically on each monitored endpoint. No manual IP configuration is required in the dashboard (same model as Wazuh Agent registration).
 
-### Per ogni nuovo endpoint da monitorare:
+### Per ogni nuovo endpoint:
 
 1. Install the Wazuh Agent (as per Wazuh documentation)
-2. Install Netdata:
-   ```bash
-   curl https://get.netdata.cloud/kickstart.sh | sh
-   ```
-3. Configure Netdata to accept remote connections:
-   ```bash
-   sudo nano /etc/netdata/netdata.conf
-   ```
-   ```ini
-   [web]
-       bind to = 0.0.0.0
-   ```
-   ```bash
-   sudo systemctl restart netdata
-   ```
-4. (Recommended) Restrict port 19999 to your internal network:
-   ```bash
-   ufw allow from <ip_wazuhx_server> to any port 19999
+2. Install and start Glances web mode:
+
+   **Windows 11 (PowerShell Admin):**
+   ```powershell
+   pip install glances[all]
+   glances -w --bind 0.0.0.0 --port 61208 --disable-webui
    ```
 
-### Come funziona l'auto-discovery
+   **Linux:**
+   ```bash
+   sudo apt install glances
+   glances -w --bind 0.0.0.0 --port 61208 --disable-webui
+   ```
 
-WazuhX reads each agent IP from the Wazuh API and probes `http://<agent_ip>:19999`. When Netdata responds, real-time metrics appear in the **Risorse live** tab with the ⚡ badge on the agents list. If Netdata is not installed, metrics show as unavailable without noisy errors.
+3. Allow port **61208** from the WazuhX backend host only (firewall).
 
-See [deploy/netdata/README.md](deploy/netdata/README.md) for deployment details. Fleet **Metriche** refreshes every **5 seconds** (`METRICS_CACHE_TTL_SECONDS=5`).
+### Auto-discovery
+
+WazuhX reads each agent IP from the Wazuh API and probes `http://<agent_ip>:61208/api/4/quicklook`. When Glances responds, real-time metrics appear in **Risorse live** with the badge on the agents list.
+
+See [deploy/glances/README.md](deploy/glances/README.md). Fleet **Metriche** refreshes every **5 seconds** (`METRICS_CACHE_TTL_SECONDS=5`).
 
 ## API Endpoints
 
@@ -146,16 +143,16 @@ See [deploy/netdata/README.md](deploy/netdata/README.md) for deployment details.
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
 | GET | `/api/overview` | Dashboard KPIs |
-| GET | `/api/agents` | List agents (`netdataAvailable` per agent) |
+| GET | `/api/agents` | List agents (`liveMetricsAvailable` per agent) |
 | GET | `/api/agents/:id` | Agent detail |
-| GET | `/api/agents/:id/stats` | Live Netdata metrics (CPU/RAM/disk/network) |
+| GET | `/api/agents/:id/stats` | Live Glances metrics (CPU/RAM/disk/network) |
 | GET | `/api/alerts` | Paginated alerts |
 | GET | `/api/vulnerabilities` | CVE list |
 | GET | `/api/fim` | FIM events |
 | GET | `/api/compliance` | SCA/compliance |
-| GET | `/api/metrics` | Fleet metrics from Netdata only (`?agentId=`) |
-| GET | `/api/metrics/realtime/:agentId` | Live Netdata snapshot (`diskMetric`: `io`) |
-| GET | `/api/metrics/netdata/series` | Time series for charts (`agentId`, `range`) |
+| GET | `/api/metrics` | Fleet metrics from Glances (`?agentId=`) |
+| GET | `/api/metrics/realtime/:agentId` | Live Glances snapshot |
+| GET | `/api/metrics/glances/series` | CPU/RAM history (`agentId`, `points`) |
 | POST | `/api/ai/briefing` | AI executive briefing |
 | POST | `/api/ai/chat` | AI chat |
 | POST | `/api/reports/generate` | PDF/HTML report |
@@ -186,16 +183,16 @@ See [deploy/netdata/README.md](deploy/netdata/README.md) for deployment details.
 
 ### Metrics empty or stale
 
-- **Syscollector** updates on a schedule (often hourly): RAM `usage` is reliable; CPU % is estimated from top processes.
-- For **realtime** CPU, load average, and disk: deploy [`deploy/wazuh/`](deploy/wazuh/README.md) (`agent-metrics.sh` + logcollector + indexer).
-- Configure `WAZUH_INDEXER_URL` so WazuhX can read `wazuhx_metrics` alerts.
+- Install **Glances** on each agent host (see [deploy/glances/README.md](deploy/glances/README.md)).
+- Verify discovery: agent list should show `liveMetricsAvailable: true` within ~60s.
 - Clear cache after changes: `curl -X DELETE http://localhost:3001/api/cache`
 
-### Netdata unreachable from WazuhX
+### Glances unreachable from WazuhX
 
-- From the backend host: `curl -s "http://<agent-ip>:19999/api/v1/data?chart=system.cpu&points=1&after=-5&format=json"`
-- Open firewall **19999/tcp** from WazuhX backend to agents.
-- Ensure the IP in Wazuh matches the interface where Netdata listens.
+- From the backend host: `curl -s "http://<agent-ip>:61208/api/4/quicklook"`
+- Open firewall **61208/tcp** from WazuhX backend to agents.
+- On the endpoint: `glances -w --bind 0.0.0.0 --port 61208 --disable-webui`
+- Ensure the IP in Wazuh matches the host where Glances listens.
 
 ## Links
 

@@ -2,7 +2,7 @@ const express = require('express');
 const metricsService = require('../services/metricsService');
 const realtimeMetricsService = require('../services/realtimeMetricsService');
 const wazuh = require('../services/wazuhClient');
-const netdata = require('../services/netdataClient');
+const glancesService = require('../services/glancesService');
 const { sendData } = require('../utils/response');
 const { withCache, getCacheKey } = require('../middleware/cache');
 
@@ -26,21 +26,17 @@ router.get('/realtime/:agentId', async (req, res, next) => {
     }
     sendData(res, {
       data: result.data,
-      source: result.source === 'mock' ? 'mock' : 'netdata',
+      source: result.source === 'mock' ? 'mock' : 'glances',
     });
   } catch (err) {
     next(err);
   }
 });
 
-const RANGE_SECONDS = { '5m': 300, '15m': 900, '1h': 3600, '6h': 21600, '24h': 86400 };
-
-router.get('/netdata/series', async (req, res, next) => {
+router.get('/glances/series', async (req, res, next) => {
   try {
     const agentId = req.query.agentId;
-    const range = req.query.range || '1h';
-    const afterSec = RANGE_SECONDS[range] || parseInt(req.query.after, 10) || 3600;
-    const charts = (req.query.charts || 'system.cpu,system.ram,system.net').split(',');
+    const points = Math.min(parseInt(req.query.points, 10) || 60, 120);
 
     const agentResult = await wazuh.getAgent(agentId);
     if (!agentResult?.data?.ip) {
@@ -48,28 +44,31 @@ router.get('/netdata/series', async (req, res, next) => {
     }
 
     const hostIp = agentResult.data.ip;
-    const points = Math.min(parseInt(req.query.points, 10) || 60, 120);
-    const series = {};
-
-    for (const chart of charts) {
-      series[chart] = await netdata.getChartSeries(hostIp, chart.trim(), {
-        after: -afterSec,
-        points,
-      });
+    if (!glancesService.isValidAgentIp(hostIp)) {
+      return res.status(503).json({ error: 'Glances unreachable' });
     }
 
-    const reachable = Object.values(series).some((s) => s.ok);
+    const historyBundle = await glancesService.getHistory(hostIp, points);
+    const reachable = (historyBundle.cpu?.length || 0) > 0
+      || (historyBundle.ram?.length || 0) > 0;
+
     if (!reachable) {
-      return res.status(503).json({ error: 'Netdata unreachable' });
+      return res.status(503).json({ error: 'Glances unreachable' });
     }
 
     sendData(res, {
-      data: { agentId, range, series, reachable },
-      source: 'netdata',
+      data: { agentId, points, series: historyBundle, reachable },
+      source: 'glances',
     });
   } catch (err) {
     next(err);
   }
+});
+
+/** @deprecated use /metrics/glances/series */
+router.get('/netdata/series', (req, res) => {
+  const qs = new URLSearchParams(req.query).toString();
+  res.redirect(307, `glances/series${qs ? `?${qs}` : ''}`);
 });
 
 router.get('/', async (req, res, next) => {
@@ -79,7 +78,7 @@ router.get('/', async (req, res, next) => {
     const result = await withCache(req, res, key, metricsTtl, () =>
       metricsService.getMetrics(agentId)
     );
-    const source = result.source || 'netdata';
+    const source = result.source || 'glances';
     const { source: _s, ...payload } = result;
     sendData(res, { data: payload, source });
   } catch (err) {

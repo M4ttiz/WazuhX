@@ -125,7 +125,7 @@ export default function AgentDetail() {
                     border: '1px solid #00d4ff44',
                   }}
                 >
-                  ⚡ Netdata · real-time
+                  ⚡ Glances · real-time
                 </span>
               ) : (
                 <span
@@ -135,7 +135,7 @@ export default function AgentDetail() {
                     border: '1px solid rgba(148, 163, 184, 0.3)',
                   }}
                 >
-                  Netdata non disponibile
+                  Metriche non disponibili
                 </span>
               )}
               <div className="grid md:grid-cols-3 gap-6">
@@ -174,10 +174,10 @@ export default function AgentDetail() {
                     </span>
                   </p>
                 )}
-                {liveStats?.netdataInfo?.version && (
+                {liveStats?.agentInfo?.version && (
                   <p className="md:col-span-2 text-xs text-[#64748b]">
-                    Netdata {liveStats.netdataInfo.version}
-                    {liveStats.netdataInfo.os ? ` · ${liveStats.netdataInfo.os}` : ''}
+                    Glances {liveStats.agentInfo.version}
+                    {liveStats.agentInfo.cpuName ? ` · ${liveStats.agentInfo.cpuName}` : ''}
                   </p>
                 )}
               </div>

@@ -1,5 +1,5 @@
 const wazuh = require('./wazuhClient');
-const netdata = require('./netdataClient');
+const glancesService = require('./glancesService');
 const mock = require('../mock/mockData');
 
 /**
@@ -9,13 +9,13 @@ async function getRealtimeMetricsForAgent(agentId) {
   if (wazuh.isMockMode()) {
     const data = mock.getRealtimeMetrics(agentId);
     if (!data) return { data: null, source: 'mock', notFound: true };
-    return { data, source: 'mock' };
+    return { data: { ...data, source: 'glances' }, source: 'mock' };
   }
 
   const agentResult = await wazuh.getAgent(agentId);
   const agent = agentResult?.data;
   if (!agent) {
-    return { data: null, source: 'netdata', notFound: true };
+    return { data: null, source: 'glances', notFound: true };
   }
 
   const agentIdStr = String(agent.id);
@@ -28,42 +28,42 @@ async function getRealtimeMetricsForAgent(agentId) {
     cpu: null,
     ram: null,
     disk: null,
-    diskUnit: null,
-    diskMetric: 'io',
+    diskUnit: '%',
+    diskMetric: 'percent',
     timestamp: Date.now(),
     reachable: false,
     partial: false,
-    source: 'netdata',
+    source: 'glances',
     ...overrides,
   });
 
-  if (!netdata.isValidHostIp(hostIp)) {
+  if (!glancesService.isValidAgentIp(hostIp)) {
     return {
       data: basePayload({
-        error: 'Netdata unreachable',
-        source: 'netdata',
+        error: 'Glances unreachable',
+        source: 'glances',
       }),
-      source: 'netdata',
+      source: 'glances',
     };
   }
 
-  const nd = await netdata.getRealtimeMetrics(hostIp);
-  const reachable = Boolean(nd.reachable);
+  const metrics = await glancesService.getAgentMetrics(agentId, hostIp);
+  const reachable = Boolean(metrics?.reachable);
 
   const data = basePayload({
-    timestamp: nd.timestamp || Date.now(),
-    cpu: nd.cpu,
-    ram: nd.ram,
-    disk: nd.disk,
-    diskUnit: nd.diskUnit,
-    diskMetric: nd.disk != null ? 'io' : null,
+    timestamp: metrics?.timestamp ? new Date(metrics.timestamp).getTime() : Date.now(),
+    cpu: metrics?.cpu?.percent ?? null,
+    ram: metrics?.ram?.percent ?? null,
+    disk: metrics?.disk?.percent ?? null,
+    diskUnit: '%',
+    diskMetric: 'percent',
     reachable,
-    partial: Boolean(nd.partial && reachable),
-    error: reachable ? undefined : 'Netdata unreachable',
-    source: 'netdata',
+    partial: false,
+    error: reachable ? undefined : 'Glances unreachable',
+    source: 'glances',
   });
 
-  return { data, source: 'netdata' };
+  return { data, source: 'glances' };
 }
 
 module.exports = {

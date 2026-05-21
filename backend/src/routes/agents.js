@@ -1,6 +1,6 @@
 const express = require('express');
 const wazuh = require('../services/wazuhClient');
-const netdataService = require('../services/netdataService');
+const glancesService = require('../services/glancesService');
 const { sendData } = require('../utils/response');
 const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
 
@@ -21,13 +21,13 @@ router.get('/', async (req, res, next) => {
       const agents = wazuhResult.data || [];
 
       await Promise.allSettled(
-        agents.map((a) => netdataService.isNetdataAvailable(a.id, a.ip))
+        agents.map((a) => glancesService.isGlancesAvailable(a.id, a.ip))
       );
 
-      const discovery = netdataService.getDiscoveryStatus();
+      const discovery = glancesService.getDiscoveryStatus();
       const enriched = agents.map((a) => ({
         ...a,
-        netdataAvailable: discovery[String(a.id)]?.netdataAvailable ?? false,
+        liveMetricsAvailable: discovery[String(a.id)]?.liveMetricsAvailable ?? false,
       }));
 
       return { ...wazuhResult, data: enriched };
@@ -55,13 +55,13 @@ router.get('/:id/stats', async (req, res, next) => {
     const result = await withCache(req, res, key, statsCacheTtl, async () => {
       const agentResult = await wazuh.getAgent(req.params.id);
       if (!agentResult.data) {
-        return { data: null, source: 'netdata', notFound: true };
+        return { data: null, source: 'glances', notFound: true };
       }
 
       const agent = agentResult.data;
-      const metrics = await netdataService.getAgentMetrics(agent.id, agent.ip);
-      const data = metrics || netdataService.emptyMetrics();
-      return { data, source: 'netdata' };
+      const metrics = await glancesService.getAgentMetrics(agent.id, agent.ip);
+      const data = metrics || glancesService.emptyMetrics();
+      return { data, source: 'glances' };
     });
 
     if (result.notFound || !result.data) {
