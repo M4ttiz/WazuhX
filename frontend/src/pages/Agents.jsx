@@ -18,8 +18,8 @@ export default function Agents() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Agents"
-        subtitle="Monitora tutti gli agent Wazuh connessi"
+        title="Hosts"
+        subtitle="Monitor all connected Wazuh agents"
       />
 
       <GrafanaPanel className="flex flex-wrap gap-4">

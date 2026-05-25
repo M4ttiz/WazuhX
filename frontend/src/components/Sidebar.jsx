@@ -11,18 +11,19 @@ import {
   FileText,
   Settings,
   ShieldCheck,
+  Package,
 } from 'lucide-react';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/agents', label: 'Agenti', icon: Server },
-  { to: '/alerts', label: 'Alert', icon: AlertTriangle },
-  { to: '/vulnerabilities', label: 'CVE', icon: Shield },
-  { to: '/fim', label: 'FIM', icon: FileSearch },
-  { to: '/metrics', label: 'Metriche', icon: Activity },
-  { to: '/compliance', label: 'Compliance', icon: CheckCircle },
+  { to: '/', label: 'Overview', icon: LayoutDashboard },
+  { to: '/agents', label: 'Hosts', icon: Server },
+  { to: '/metrics', label: 'Services', icon: Activity },
+  { to: '/alerts', label: 'Alerts', icon: AlertTriangle },
+  { to: '/vulnerabilities', label: 'Inventory', icon: Package },
+  { to: '/fim', label: 'Integrity', icon: FileSearch },
+  { to: '/compliance', label: 'Analytics', icon: CheckCircle },
   { to: '/ai', label: 'AI Analyst', icon: Brain },
-  { to: '/reports', label: 'Report', icon: FileText },
+  { to: '/reports', label: 'Reports', icon: FileText },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

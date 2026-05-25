@@ -4,29 +4,29 @@ import { useDataSource } from '../context/DataSourceContext';
 import { useRefresh } from '../context/RefreshContext';
 
 const TITLES = {
-  '/': 'Dashboard',
-  '/agents': 'Agenti',
-  '/alerts': 'Alert',
-  '/vulnerabilities': 'Vulnerabilità',
-  '/fim': 'FIM',
-  '/metrics': 'Metriche',
-  '/compliance': 'Compliance',
+  '/': 'Overview',
+  '/agents': 'Hosts',
+  '/alerts': 'Alerts',
+  '/vulnerabilities': 'Inventory',
+  '/fim': 'Integrity',
+  '/metrics': 'Services',
+  '/compliance': 'Analytics',
   '/ai': 'AI Analyst',
-  '/reports': 'Report',
+  '/reports': 'Reports',
   '/settings': 'Settings',
 };
 
 const BREADCRUMBS = {
-  '/': [{ label: 'Dashboard' }],
-  '/agents': [{ label: 'Dashboard', to: '/' }, { label: 'Agenti' }],
-  '/alerts': [{ label: 'Dashboard', to: '/' }, { label: 'Alert' }],
-  '/vulnerabilities': [{ label: 'Dashboard', to: '/' }, { label: 'Vulnerabilità' }],
-  '/fim': [{ label: 'Dashboard', to: '/' }, { label: 'FIM' }],
-  '/metrics': [{ label: 'Dashboard', to: '/' }, { label: 'Metriche' }],
-  '/compliance': [{ label: 'Dashboard', to: '/' }, { label: 'Compliance' }],
-  '/ai': [{ label: 'Dashboard', to: '/' }, { label: 'AI Analyst' }],
-  '/reports': [{ label: 'Dashboard', to: '/' }, { label: 'Report' }],
-  '/settings': [{ label: 'Dashboard', to: '/' }, { label: 'Settings' }],
+  '/': [{ label: 'Overview' }],
+  '/agents': [{ label: 'Overview', to: '/' }, { label: 'Hosts' }],
+  '/alerts': [{ label: 'Overview', to: '/' }, { label: 'Alerts' }],
+  '/vulnerabilities': [{ label: 'Overview', to: '/' }, { label: 'Inventory' }],
+  '/fim': [{ label: 'Overview', to: '/' }, { label: 'Integrity' }],
+  '/metrics': [{ label: 'Overview', to: '/' }, { label: 'Services' }],
+  '/compliance': [{ label: 'Overview', to: '/' }, { label: 'Analytics' }],
+  '/ai': [{ label: 'Overview', to: '/' }, { label: 'AI Analyst' }],
+  '/reports': [{ label: 'Overview', to: '/' }, { label: 'Reports' }],
+  '/settings': [{ label: 'Overview', to: '/' }, { label: 'Settings' }],
 };
 
 export default function Header({ onMenuOpen }) {
@@ -36,11 +36,11 @@ export default function Header({ onMenuOpen }) {
 
   const title =
     TITLES[location.pathname] ||
-    (location.pathname.startsWith('/agents/') ? 'Dettaglio Agente' : 'WazuhX');
+    (location.pathname.startsWith('/agents/') ? 'Host Detail' : 'WazuhX');
 
   const crumbs =
     location.pathname.startsWith('/agents/') && location.pathname !== '/agents'
-      ? [{ label: 'Dashboard', to: '/' }, { label: 'Agenti', to: '/agents' }, { label: 'Dettaglio' }]
+      ? [{ label: 'Overview', to: '/' }, { label: 'Hosts', to: '/agents' }, { label: 'Detail' }]
       : BREADCRUMBS[location.pathname] || [{ label: title }];
 
   const handleRefresh = () => {

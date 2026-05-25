@@ -1,67 +1,71 @@
 ﻿import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Server, AlertTriangle, Shield, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { useWazuh } from '../hooks/useWazuh';
 import { getRefreshInterval } from '../hooks/useAutoRefresh';
 import { useDataSource } from '../context/DataSourceContext';
-import KpiCard from '../components/KpiCard';
-import MitreHeatmap from '../components/MitreHeatmap';
-import SeverityBadge from '../components/SeverityBadge';
 import EmptyState from '../components/EmptyState';
 import GrafanaPanel from '../components/GrafanaPanel';
+import SeverityBadge from '../components/SeverityBadge';
+import OverviewKpiHeader from '../components/dashboard/OverviewKpiHeader';
+import StatusDonutChart from '../components/dashboard/StatusDonutChart';
+import TopProblemHostsTable from '../components/dashboard/TopProblemHostsTable';
+import ProblemsPivotTable from '../components/dashboard/ProblemsPivotTable';
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, CartesianGrid,
-} from 'recharts';
+  buildOverviewKpis,
+  buildSyntheticServices,
+  buildHostStatusDistribution,
+  buildServiceStatusDistribution,
+  buildTopProblemHosts,
+  buildHostProblemsPivot,
+  buildServiceProblemsPivot,
+  HOST_STATUS_COLORS,
+  SERVICE_STATUS_COLORS,
+} from '../utils/dashboardMappers';
 import { formatDate } from '../utils/formatters';
-import { SEVERITY_COLORS, chartTooltipStyle, chartAxisProps, chartGridProps } from '../utils/chartTheme';
 
 export default function Dashboard() {
   const interval = getRefreshInterval('dashboard', 15000);
   const { data, loading, error } = useWazuh('/overview', { refreshInterval: interval });
+  const { data: agentsData, loading: agentsLoading, error: agentsError } = useWazuh('/agents', {
+    refreshInterval: interval,
+  });
   const { wazuhConnected, isMock } = useDataSource();
 
-  const donutData = useMemo(
-    () => (data?.severityDist ? Object.entries(data.severityDist).map(([name, value]) => ({ name, value })) : []),
-    [data?.severityDist]
+  const agents = useMemo(
+    () => (Array.isArray(agentsData) ? agentsData : []),
+    [agentsData]
   );
 
-  if (error) {
+  const services = useMemo(() => buildSyntheticServices(agents), [agents]);
+  const overviewKpis = useMemo(() => buildOverviewKpis(agents, data), [agents, data]);
+  const hostDistribution = useMemo(() => buildHostStatusDistribution(agents), [agents]);
+  const serviceDistribution = useMemo(() => buildServiceStatusDistribution(services), [services]);
+  const topHosts = useMemo(() => buildTopProblemHosts(agents, 10), [agents]);
+  const hostPivot = useMemo(() => buildHostProblemsPivot(agents), [agents]);
+  const servicePivot = useMemo(() => buildServiceProblemsPivot(services), [services]);
+
+  const pageLoading = loading || agentsLoading;
+  const pageError = error || agentsError;
+  const { recentActivity, hasCriticalIncident } = data || {};
+  const connected = wazuhConnected && !isMock;
+
+  if (pageError && !data && !agents.length) {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Impossibile caricare la dashboard"
-        message={error}
+        title="Impossibile caricare Overview"
+        message={pageError}
       />
     );
   }
-
-  if (!data && loading) {
-    return (
-      <div className="space-y-4">
-        <div className="skeleton h-10 w-48 rounded-lg" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <KpiCard key={i} loading hero />
-          ))}
-        </div>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="card skeleton h-[280px]" />
-          <div className="card skeleton h-[280px]" />
-        </div>
-      </div>
-    );
-  }
-
-  const { kpis, severityTrend, topRules, mitreHeatmap, recentActivity, hasCriticalIncident } = data || {};
-  const connected = wazuhConnected && !isMock;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#f1f5f9]">Cruscotto SOC</h1>
-          <p className="text-sm text-[#94a3b8] mt-1">Panoramica operativa della postura di sicurezza</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Overview</h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">MISAT Monitor — postura host e servizi</p>
         </div>
         <div
           className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
@@ -81,149 +85,75 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          hero
-          label="Agenti attivi"
-          value={kpis?.agentsOnline}
-          sub={`${kpis?.agentsOffline ?? 0} offline`}
-          trend="+2%"
-          variant="ok"
-          icon={Server}
-          loading={loading}
-        />
-        <KpiCard
-          hero
-          label="Alert critici"
-          value={kpis?.criticalAlerts}
-          trend={kpis?.criticalAlerts > 0 ? '+12%' : '-5%'}
-          variant="critical"
-          icon={AlertTriangle}
-          loading={loading}
-        />
-        <KpiCard
-          hero
-          label="Vulnerabilità"
-          value={kpis?.totalCve}
-          variant="warning"
-          icon={Shield}
-          loading={loading}
-        />
-        <KpiCard
-          hero
-          label="Compliance media"
-          value={`${kpis?.avgCompliance ?? 0}%`}
-          trend="+3%"
-          variant="ok"
-          icon={CheckCircle}
-          loading={loading}
-        />
-      </div>
+      <OverviewKpiHeader kpis={overviewKpis} loading={pageLoading} />
 
       <div className="grid grid-cols-12 gap-3">
-        <GrafanaPanel title="Trend severità (7 giorni)" className="col-span-12 lg:col-span-6">
-          <ResponsiveContainer width="100%" height={280} className="h-[200px] lg:h-[300px] min-h-[200px]">
-            <AreaChart data={severityTrend || []}>
-              <defs>
-                <linearGradient id="gradCritical" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid {...chartGridProps} />
-              <XAxis dataKey="date" {...chartAxisProps} />
-              <YAxis {...chartAxisProps} />
-              <Tooltip contentStyle={chartTooltipStyle} />
-              <Area type="monotone" dataKey="critical" stackId="1" stroke={SEVERITY_COLORS.critical} fill="url(#gradCritical)" />
-              <Area type="monotone" dataKey="high" stackId="1" stroke={SEVERITY_COLORS.high} fill={SEVERITY_COLORS.high} fillOpacity={0.35} />
-              <Area type="monotone" dataKey="medium" stackId="1" stroke={SEVERITY_COLORS.medium} fill={SEVERITY_COLORS.medium} fillOpacity={0.3} />
-              <Area type="monotone" dataKey="low" stackId="1" stroke={SEVERITY_COLORS.low} fill={SEVERITY_COLORS.low} fillOpacity={0.25} />
-            </AreaChart>
-          </ResponsiveContainer>
+        <GrafanaPanel title="Host Status Distribution" className="col-span-12 lg:col-span-6">
+          <StatusDonutChart
+            data={hostDistribution}
+            colors={HOST_STATUS_COLORS}
+            loading={pageLoading}
+          />
         </GrafanaPanel>
-
-        <GrafanaPanel title="Distribuzione severità" className="col-span-12 lg:col-span-6">
-          <ResponsiveContainer width="100%" height={280} className="h-[200px] lg:h-[300px] min-h-[200px]">
-            <PieChart>
-              <Pie
-                data={donutData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {donutData.map((entry) => (
-                  <Cell key={entry.name} fill={SEVERITY_COLORS[entry.name] || '#3b82f6'} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={chartTooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+        <GrafanaPanel title="Service Status Distribution" className="col-span-12 lg:col-span-6">
+          <StatusDonutChart
+            data={serviceDistribution}
+            colors={SERVICE_STATUS_COLORS}
+            loading={pageLoading}
+          />
         </GrafanaPanel>
       </div>
 
-      <div className="grid grid-cols-12 gap-3">
-        <GrafanaPanel title="Top 10 regole" className="col-span-12 lg:col-span-6">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={topRules || []} layout="vertical">
-              <CartesianGrid {...chartGridProps} />
-              <XAxis type="number" {...chartAxisProps} />
-              <YAxis type="category" dataKey="id" width={50} {...chartAxisProps} />
-              <Tooltip contentStyle={chartTooltipStyle} />
-              <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </GrafanaPanel>
-        <GrafanaPanel title="MITRE ATT&CK" className="col-span-12 lg:col-span-6">
-          <MitreHeatmap data={mitreHeatmap || []} />
-        </GrafanaPanel>
-      </div>
-
-      <GrafanaPanel title="Ultimi alert" className="col-span-12">
-        <div className="flex justify-end -mt-1 mb-2">
-          <Link to="/alerts" className="text-sm text-[var(--accent)] hover:underline font-medium">
-            Vedi tutti
-          </Link>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Severità</th>
-                <th>Regola</th>
-                <th>Agente</th>
-                <th>Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(recentActivity || []).slice(0, 8).map((a) => (
-                <tr key={a.id}>
-                  <td>
-                    <SeverityBadge level={a.severity} label={a.severityLabel} />
-                  </td>
-                  <td className="max-w-xs truncate">{a.ruleDescription || a.ruleId}</td>
-                  <td>{a.agentName || a.agentId}</td>
-                  <td className="text-[#94a3b8]">{formatDate(a.timestamp)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!recentActivity || recentActivity.length === 0) && (
-            <p className="text-center text-[#94a3b8] py-8 text-sm">Nessun alert recente</p>
-          )}
-        </div>
+      <GrafanaPanel title="Top Problem Hosts">
+        <TopProblemHostsTable rows={topHosts} loading={pageLoading} />
       </GrafanaPanel>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Alert totali" value={kpis?.totalAlerts} variant="info" loading={loading} />
-        <KpiCard label="Minacce bloccate" value={kpis?.threatsBlocked?.toLocaleString()} variant="info" loading={loading} />
-        <KpiCard label="Compromessi" value={kpis?.agentsCompromised} variant="critical" loading={loading} />
-        <KpiCard label="Endpoint totali" value={(kpis?.agentsOnline || 0) + (kpis?.agentsOffline || 0)} variant="accent" loading={loading} />
+      <div className="grid grid-cols-12 gap-3">
+        <GrafanaPanel title="Host Problems by State" className="col-span-12 lg:col-span-6">
+          <ProblemsPivotTable rows={hostPivot} loading={pageLoading} />
+        </GrafanaPanel>
+        <GrafanaPanel title="Service Problems by State" className="col-span-12 lg:col-span-6">
+          <ProblemsPivotTable rows={servicePivot} loading={pageLoading} />
+        </GrafanaPanel>
       </div>
+
+      {(recentActivity?.length > 0 || pageLoading) && (
+        <GrafanaPanel title="Recent Alerts">
+          <div className="flex justify-end -mt-1 mb-2">
+            <Link to="/alerts" className="text-sm text-[var(--accent)] hover:underline font-medium">
+              View all alerts
+            </Link>
+          </div>
+          {pageLoading ? (
+            <div className="skeleton h-32 w-full rounded-md" />
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Rule</th>
+                    <th>Agent</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(recentActivity || []).slice(0, 5).map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <SeverityBadge level={a.severity} label={a.severityLabel} />
+                      </td>
+                      <td className="max-w-xs truncate">{a.ruleDescription || a.ruleId}</td>
+                      <td>{a.agentName || a.agentId}</td>
+                      <td className="text-[var(--text-secondary)]">{formatDate(a.timestamp)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </GrafanaPanel>
+      )}
     </div>
   );
 }
-

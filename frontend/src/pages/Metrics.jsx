@@ -72,8 +72,8 @@ export default function Metrics() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Metriche risorse"
-        subtitle="Prestazioni live da Glances - tabella stile cluster nodes"
+        title="Services"
+        subtitle="Live resource metrics from Glances — cluster-style service table"
       />
 
       {showGlobalBanner && <MetricsBanner error={error} />}

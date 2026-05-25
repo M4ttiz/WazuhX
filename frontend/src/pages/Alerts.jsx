@@ -133,8 +133,8 @@ export default function Alerts() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Alert"
-        subtitle="Monitora eventi di sicurezza, gestisci stato e analizza trend"
+        title="Alerts"
+        subtitle="Monitor security events, manage status, and analyze trends"
         actions={
           <button type="button" className="btn-primary" onClick={handleExport}>
             Export CSV
