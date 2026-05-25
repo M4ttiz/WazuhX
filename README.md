@@ -6,7 +6,8 @@
 
 **WazuhX** is an open-source alternative dashboard for [Wazuh](https://wazuh.com), with AI-powered analysis via Google Gemini.
 
-![Screenshot placeholder](https://via.placeholder.com/1200x600/080c14/00d4ff?text=WazuhX+Dashboard)
+<img width="1882" height="854" alt="image" src="https://github.com/user-attachments/assets/08e38ccf-99f8-49d4-941e-dafbe8da0c58" />
+
 
 ## Features
 
