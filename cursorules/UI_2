@@ -1,51 +1,139 @@
-prima di eseguire il promt, crea un nuovo branch dove lavorerai.
+[PROGETTO] WazuhX – Modifiche consentite:
+✅ Frontend: tutto dentro `frontend/src/` (React + Vite + Tailwind)
+✅ Nuovo backend SSH: crea cartella `ssh-proxy/` (Node.js + WebSocket + ssh2)
+❌ NON toccare il backend originale di WazuhX (API, Docker, env, config)
+❌ NON usare dati mock – usa solo API reali esistenti; se manca un dato → mostra `--`
 
-[CONTESTO]
-Stai lavorando esclusivamente sulla cartella `frontend/` del progetto WazuhX (React + Vite + Tailwind CSS).
-NON devi assolutamente modificare:
-- Qualsiasi file API (es. /api, /services, axios config, endpoint)
-- File di configurazione Docker (docker-compose.yml, Dockerfile, env)
-- Backend (Node.js, Express, routes, controller)
-- Qualsiasi logica di autenticazione o gestione stato globale già funzionante (es. Redux/Context se già presenti)
+---
 
-Il tuo compito è **rifare completamente l'interfaccia utente** mantenendo:
-- Le stesse pagine (Overview, Hosts, Services, Alerts, Inventory, Maps, Dashboards, Analytics, Metrics, Trends, Reports, Administration, Users, Roles, Settings, Integrations)
-- Le stesse chiamate API esistenti (i nomi degli endpoint, i payload, i dati ricevuti non cambiano)
+## 1. PAGINE DELLA SIDEBAR (ordine esatto)
+Dashboard, Agent, Alert, CVE, PM, Metrics, Compliance, AI Analyst, Analytics, Trends, Report, Settings
 
-[OBIETTIVO PRINCIPALE]
-Trasformare la UI attuale in una dashboard moderna, basata sul layout e sulle metriche mostrate nell'immagine "MISAT Monitor" (PNG allegato).  
-I dati reali devono venire **dalle API già esistenti** di WazuhX, NON da mock fissi.
+- **Dashboard** – principale (layout dal PNG “MISAT Monitor”)
+- **Analytics** (nuova) – statistiche e distribuzioni
+- **Trends** (nuova) – evoluzione temporale
 
-[LAYOUT DA RISPETTARE – derivato dal PNG]
-1. **Header KPI** (Total Hosts, Up Hosts, Warning Hosts, Critical Hosts, Down Hosts, Total Services, Problems, Unchecked)
-2. **Host Status Distribution** (grafico a torta o anello: OK, Warning, Down)
-3. **Service Status Distribution** (OK, Warning, Critical, Unknown)
-4. **Tabella Top Problem Hosts** (Host, Status, Problems, Last Change)
-5. **Tabella pivot "Host Problems by State"** (righe: Critical/Warning/Unknown – colonne: numero e percentuale)
-6. **Tabella pivot "Service Problems by State"**
-7. **Sidebar di navigazione** con le voci esistenti (Overview, Hosts, Services, ... Integrations)
+---
 
-[VINCOLI TECNICI – SOLO UI]
-- Utilizza i componenti già presenti in `frontend/src/components/` se riutilizzabili, altrimenti creane di nuovi dentro una cartella `components/dashboard/`
-- Usa Tailwind CSS per lo stile (non toccare index.css se non per variabili tematiche globali)
-- Per i grafici: installa e usa `recharts` (è già probabile che ci sia, altrimenti aggiungilo solo al frontend)
-- Non alterare la logica di fetch esistente: se ora usi `useEffect` con `axios`, lascialo identico. Limiti a **visualizzare** i dati che arrivano.
-- Gestisci stati di loading e errore con componenti UI (spinner, skeleton, messaggi) ma senza cambiare la logica di recupero dati.
+## 2. LAYOUT DASHBOARD (riscrivere completamente `Dashboard.jsx`)
 
-[FLUSSO DI LAVORO PER CURSOR]
-1. Analizza la struttura attuale della cartella `frontend/src`.
-2. Identifica le pagine (Overview, Hosts, ecc.) e i loro componenti.
-3. Per la pagina **Overview** (che è quella principale da cui parte il refactoring):
-   - Sostituisci il contenuto esistente con il nuovo layout KPI + tabelle.
-   - Usa gli stessi `useEffect` e chiamate API per popolare i dati (es. `/api/overview`, `/api/hosts`, `/api/services`, `/api/alerts/top`).
-   - Trasforma i dati grezzi nelle strutture necessarie per le tabelle e i grafici (senza modificare gli endpoint).
-4. Per tutte le altre pagine: mantieni la loro funzionalità originale ma applica lo **stile globale** (colori, card, tabelle) per coerenza visiva.
+### 2.1 KPI row
+Total Hosts, Up Hosts (con %), Warning Hosts (%), Down Hosts (%), Total Services, Problems, Unchecked.
+Tutti i valori da API reali: `/api/overview`, `/api/hosts`, `/api/services`, `/api/alerts`.
 
-[ESEMPIO DI ADATTAMENTO DATI – PNG vs API reali]
-- Il PNG mostra 3 host, con `PC_DL_ANDREA` DOWN e `pasqui_pc` WARNING.
-- Le API reali restituiranno dati dinamici. Tu **non devi mockare nulla**, devi solo mappare i campi restituiti dall'API nei campi visualizzati.
-- Se un campo manca (es. `Last Change` non esiste nell'API attuale), usa un campo simile (`timestamp` o `last_alert`) e mostra un formato relativo (es. "2h ago").
+### 2.2 Due donut chart (recharts)
+- Host Status Distribution (OK, Warning, Down)
+- Service Status Distribution (OK, Warning, Critical, Unknown)
 
-[COSTRUZIONE DEL PROMPT CHE DEVI SEGUIRE – per Cursor]
-```cmd
-/refactor-ui --scope=frontend-only --target=Overview --layout=MISAT
+### 2.3 Tabella "Top Problem Hosts"
+Colonne: Host, Status (badge colorato), Problems, Last Change, **Terminal** (icona).
+I dati da `/api/hosts` e `/api/alerts` (raggruppa alert per host).
+La colonna Terminal mostra un'icona 🖥️. Al click → apre `SshModal` per quell'host (vedi punto 5).
+
+### 2.4 Due tabelle pivot
+- Host Problems by State (righe: Critical, Warning, Unknown; colonne: numero e %)
+- Service Problems by State (stessa logica)
+Calcola da `/api/alerts` aggregati.
+
+### 2.5 Paginazione + search locale (sulla tabella)
+
+---
+
+## 3. PAGINA ANALYTICS (`Analytics.jsx`)
+- Distribuzione severità alert (Critical, Warning, Unknown) – grafico a barre
+- Top 5 CVE da `/api/cve`
+- Percentuale compliance da `/api/compliance` (se esiste; altrimenti `--`)
+- Media CPU/RAM per host da `/api/metrics` (se esiste)
+- Stile: tabelle compatte, card con bordo sottile
+
+---
+
+## 4. PAGINA TRENDS (`Trends.jsx`)
+- Grafico a linee (recharts) degli alert totali negli ultimi 7 giorni
+- Fetch `/api/alerts` e filtra lato frontend per data
+- Selettore intervallo: 24h, 7d, 30d – filtra i dati già caricati
+- Tabella breakdown giornaliero (data, alert count, host down)
+
+---
+
+## 5. SSH LIVE IN BROWSER (backend separato + frontend)
+
+### 5.1 Backend SSH (`ssh-proxy/`)
+- Cartella separata, non interferisce con backend WazuhX
+- `package.json` con dipendenze: `express`, `ws`, `ssh2`, `cors`
+- `server.js`:
+  - WebSocket server su porta `3001`
+  - Riceve messaggio `{ type: "connect", host, port, username, password }`
+  - Usa `ssh2` per connettersi e fa pipe tra WebSocket e SSH
+  - Gestisce resize (`window-change`)
+- Fornisci `Dockerfile` opzionale e istruzioni per avviare (`node server.js`)
+
+### 5.2 Frontend – componente `SshModal.jsx`
+- Usa `xterm` + `xterm-addon-fit`
+- Riceve prop `host` (IP o hostname)
+- Mostra un piccolo form per `username` e `password` (o usa credenziali di test: `root` / `root` – ma meglio chiedere)
+- Apre WebSocket a `ws://localhost:3001`
+- Invia comandi di connessione, poi forwarda i dati
+- Gestisce stato di connessione, errori, disconnessione
+- Si apre cliccando sull'icona terminale nella tabella "Top Problem Hosts"
+
+### 5.3 Integrazione
+Nella `ProblemHostsTable`, aggiungi colonna con icona (lucide-react: `Terminal`). OnClick → `setSelectedHost(host)` → apre modale con `<SshModal host={host.ip || host.name} />`.
+
+---
+
+## 6. STILE GLOBALE (dark mode professionale)
+- Sfondo `#0B0F19`, card `#151B2B`, bordi `#2A2F3F`
+- Testo primario `#E0E4F0`, secondario `#8B92A8`
+- Accento `#00A8FF` (blu elettrico), successo `#10B981`, warning `#F59E0B`, critico `#EF4444`
+- Font `Inter`, size base 13px
+- Transizioni 150ms, hover leggero (`#1E2438`)
+- Icone `lucide-react`
+- Loading: skeleton barre. Errori: toast in basso a destra.
+
+---
+
+## 7. FILE DA MODIFICARE/CREARE
+
+### Frontend
+- `frontend/src/pages/Dashboard.jsx` (riscrivi)
+- `frontend/src/pages/Analytics.jsx` (nuovo)
+- `frontend/src/pages/Trends.jsx` (nuovo)
+- `frontend/src/components/dashboard/KpiRow.jsx`
+- `frontend/src/components/dashboard/DonutChart.jsx`
+- `frontend/src/components/dashboard/ProblemHostsTable.jsx`
+- `frontend/src/components/dashboard/ProblemsMatrix.jsx`
+- `frontend/src/components/dashboard/SshModal.jsx` (nuovo)
+- `frontend/src/components/layout/Sidebar.jsx` (aggiungi voci Analytics, Trends)
+- `frontend/src/utils/dashboardHelpers.js` (funzioni aggregazione)
+- `frontend/src/App.jsx` (rotte `/analytics`, `/trends`)
+- `frontend/package.json` (aggiungi `xterm`, `xterm-addon-fit`, `lucide-react`)
+
+### Backend SSH (nuovo)
+- `ssh-proxy/package.json`
+- `ssh-proxy/server.js`
+- `ssh-proxy/Dockerfile` (opzionale)
+- `ssh-proxy/README.md` (istruzioni avvio)
+
+---
+
+## 8. VINCOLI ASSOLUTI
+- **MAI usare dati mock**. Se un campo non esiste in nessuna API → mostra `--`.
+- **Nessuna modifica** a Docker, env, backend originale WazuhX.
+- Le chiamate API frontend rimangono identiche a quelle attuali (usa i nomi già esistenti).
+- Il backend SSH deve funzionare indipendentemente (porta 3001) – l'utente lo avvierà manualmente.
+
+---
+
+## 9. OUTPUT RICHIESTO
+- Lista completa di tutti i file modificati/creati
+- Snippet delle funzioni di aggregazione (es. `aggregateProblemsByHost`)
+- Istruzioni per avviare il tutto:
+  1. Avvia backend WazuhX originale (normale)
+  2. Avvia `ssh-proxy`: `cd ssh-proxy && npm install && node server.js`
+  3. Avvia frontend: `npm run dev`
+- Nota: la SSH funzionerà solo se l'host di destinazione è raggiungibile e le credenziali corrette (per test si può usare `localhost:22` se c'è SSH attivo)
+
+---
+
+**ESEGUI SUBITO** – mantieni lo stile Grafana/Zabbix, niente fronzoli inutili.
