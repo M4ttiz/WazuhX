@@ -3,31 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --bg-base: #0f1117;
-  --bg-panel: #181b24;
-  --bg-panel-hover: #1f2335;
-  --bg-primary: #0f1117;
-  --bg-secondary: #181b24;
-  --bg-surface: #181b24;
-  --bg-card: #181b24;
-  --bg-hover: #1f2335;
-  --border: #2a2f45;
-  --border-subtle: #2a2f45;
-  --text-primary: #d8d9da;
-  --text-secondary: #8a8fa3;
-  --text-muted: #5a5f72;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-light: rgba(59, 130, 246, 0.15);
-  --green: #73bf69;
-  --yellow: #f5a623;
-  --orange: #ff7f50;
-  --red: #f2495c;
+  --bg-base: #0b0f19;
+  --bg-panel: #151b2b;
+  --bg-panel-hover: #1e2438;
+  --bg-primary: #0b0f19;
+  --bg-secondary: #151b2b;
+  --bg-surface: #151b2b;
+  --bg-card: #151b2b;
+  --bg-hover: #1e2438;
+  --border: #2a2f3f;
+  --border-subtle: #2a2f3f;
+  --text-primary: #e0e4f0;
+  --text-secondary: #8b92a8;
+  --text-muted: #5a6278;
+  --accent: #00a8ff;
+  --accent-hover: #0090db;
+  --accent-light: rgba(0, 168, 255, 0.12);
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --orange: #f59e0b;
+  --red: #ef4444;
   --purple: #b877d9;
-  --success: #73bf69;
-  --warning: #f5a623;
-  --danger: #f2495c;
-  --info: #3b82f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #00a8ff;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -41,6 +41,7 @@
 @layer base {
   body {
     font-family: var(--font);
+    font-size: 13px;
     background: var(--bg-base);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
@@ -244,7 +245,7 @@
 
   .nav-link-active {
     background: var(--accent-light);
-    color: #93c5fd;
+    color: var(--accent);
     border-left: 3px solid var(--accent);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   }

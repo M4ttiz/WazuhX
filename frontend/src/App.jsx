@@ -14,6 +14,8 @@ import Compliance from './pages/Compliance';
 import AIAnalyst from './pages/AIAnalyst';
 import ReportGenerator from './pages/ReportGenerator';
 import Settings from './pages/Settings';
+import Analytics from './pages/Analytics';
+import Trends from './pages/Trends';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,6 +42,8 @@ export default function App() {
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/compliance" element={<Compliance />} />
             <Route path="/ai" element={<AIAnalyst />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/trends" element={<Trends />} />
             <Route path="/reports" element={<ReportGenerator />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>

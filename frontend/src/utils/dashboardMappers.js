@@ -204,14 +204,14 @@ export function buildServiceProblemsPivot(services = []) {
 }
 
 export const HOST_STATUS_COLORS = {
-  OK: '#73bf69',
-  Warning: '#f5a623',
-  Down: '#f2495c',
+  OK: '#10b981',
+  Warning: '#f59e0b',
+  Down: '#ef4444',
 };
 
 export const SERVICE_STATUS_COLORS = {
-  OK: '#73bf69',
-  Warning: '#f5a623',
-  Critical: '#f2495c',
-  Unknown: '#5a5f72',
+  OK: '#10b981',
+  Warning: '#f59e0b',
+  Critical: '#ef4444',
+  Unknown: '#5a6278',
 };

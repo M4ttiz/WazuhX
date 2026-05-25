@@ -72,7 +72,7 @@ export default function Metrics() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Services"
+        title="Metrics"
         subtitle="Live resource metrics from Glances — cluster-style service table"
       />
 

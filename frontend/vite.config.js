@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/ws-ssh': {
+        target: 'ws://localhost:3002',
+        ws: true,
+        rewrite: (p) => p.replace(/^\/ws-ssh/, ''),
+      },
     },
   },
   build: {
