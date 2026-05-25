@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { useDataSource } from './context/DataSourceContext';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Agents from './pages/Agents';
 import AgentDetail from './pages/AgentDetail';
@@ -12,23 +13,44 @@ import FIM from './pages/FIM';
 import Metrics from './pages/Metrics';
 import Compliance from './pages/Compliance';
 import AIAnalyst from './pages/AIAnalyst';
+import Analytics from './pages/Analytics';
+import Trends from './pages/Trends';
 import ReportGenerator from './pages/ReportGenerator';
 import Settings from './pages/Settings';
 
+function isAuthenticated() {
+  return localStorage.getItem('isLoggedIn') === 'true';
+}
+
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authed, setAuthed] = useState(isAuthenticated);
   const { isMock } = useDataSource();
+
+  const handleLogin = useCallback(() => {
+    setAuthed(true);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('wazuhx-user');
+    setAuthed(false);
+  }, []);
+
+  if (!authed) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogout={handleLogout} />
       <div className="lg:ml-[220px] ml-0 min-h-screen flex flex-col">
         {isMock && (
           <div className="banner-warning">
             Wazuh non raggiungibile — modalità demo
           </div>
         )}
-        <Header onMenuOpen={() => setSidebarOpen(true)} />
+        <Header onMenuOpen={() => setSidebarOpen(true)} onLogout={handleLogout} />
         <main className="flex-1 p-4">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -40,8 +62,11 @@ export default function App() {
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/compliance" element={<Compliance />} />
             <Route path="/ai" element={<AIAnalyst />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/trends" element={<Trends />} />
             <Route path="/reports" element={<ReportGenerator />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

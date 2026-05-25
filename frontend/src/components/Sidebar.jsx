@@ -8,25 +8,30 @@ import {
   Activity,
   CheckCircle,
   Brain,
+  BarChart3,
+  TrendingUp,
   FileText,
   Settings,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/agents', label: 'Agenti', icon: Server },
+  { to: '/agents', label: 'Agent', icon: Server },
   { to: '/alerts', label: 'Alert', icon: AlertTriangle },
   { to: '/vulnerabilities', label: 'CVE', icon: Shield },
-  { to: '/fim', label: 'FIM', icon: FileSearch },
-  { to: '/metrics', label: 'Metriche', icon: Activity },
+  { to: '/fim', label: 'PM', icon: FileSearch },
+  { to: '/metrics', label: 'Metrics', icon: Activity },
   { to: '/compliance', label: 'Compliance', icon: CheckCircle },
   { to: '/ai', label: 'AI Analyst', icon: Brain },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/trends', label: 'Trends', icon: TrendingUp },
   { to: '/reports', label: 'Report', icon: FileText },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export default function Sidebar({ open, onClose }) {
+export default function Sidebar({ open, onClose, onLogout }) {
   return (
     <>
       {open && (
@@ -77,6 +82,19 @@ export default function Sidebar({ open, onClose }) {
             );
           })}
         </nav>
+        <div className="px-2 pb-2">
+          <button
+            type="button"
+            onClick={() => {
+              onClose?.();
+              onLogout?.();
+            }}
+            className="flex items-center gap-3 w-full py-3 px-4 rounded-md text-[var(--text-secondary)] hover:bg-[rgba(239,68,68,0.08)] hover:text-[var(--red)] transition-colors duration-150"
+          >
+            <LogOut size={18} aria-hidden />
+            <span className="text-sm font-medium">Logout</span>
+          </button>
+        </div>
         <div className="p-4 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">v1.0.0</div>
       </aside>
     </>
