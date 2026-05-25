@@ -1,11 +1,11 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, memo } from 'react';
 import SeverityBadge from './SeverityBadge';
 import { formatDate } from '../utils/formatters';
 import { normalizeAlertForUi } from '../utils/alertFields';
 
 const STATUS_LABELS = { new: 'Nuovo', seen: 'Visto', dismissed: 'Archiviato' };
 
-export default function AlertTable({
+function AlertTable({
   alerts = [],
   expandable = true,
   selectable = false,
@@ -138,3 +138,5 @@ export default function AlertTable({
     </div>
   );
 }
+
+export default memo(AlertTable);

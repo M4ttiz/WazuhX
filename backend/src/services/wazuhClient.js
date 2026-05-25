@@ -130,13 +130,42 @@ async function wazuhRequest(path, params = {}) {
   }
 }
 
+const emptyVulnWarned = new Set();
+
+function isManagerAgentId(id) {
+  const stripped = String(id).replace(/^0+/, '') || '0';
+  return stripped === '0';
+}
+
 async function getActiveAgents() {
   const raw = await wazuhRequest('/agents', { status: 'active', limit: 500 });
   if (!raw?.affected_items?.length) return [];
-  return raw.affected_items.map((a) => ({
-    id: formatAgentId(a.id),
-    name: a.name || `agent-${a.id}`,
-  }));
+  return raw.affected_items
+    .filter((a) => !isManagerAgentId(a.id))
+    .map((a) => ({
+      id: formatAgentId(a.id),
+      name: a.name || `agent-${a.id}`,
+    }));
+}
+
+async function fetchAgentVulnerabilitiesFromApi(agentRef) {
+  const endpoints = [
+    `/vulnerability/${agentRef}`,
+    `/vulnerability/${agentRef}/cve`,
+    `/cve/${agentRef}`,
+  ];
+
+  for (const path of endpoints) {
+    const raw = await wazuhRequest(path);
+    const items = raw?.affected_items || [];
+    if (items.length) return items;
+    const warnKey = `${agentRef}:${path}`;
+    if (!emptyVulnWarned.has(warnKey)) {
+      emptyVulnWarned.add(warnKey);
+      console.warn(`Wazuh API: [${path}] empty affected_items`);
+    }
+  }
+  return [];
 }
 
 function normalizeAgent(a) {
@@ -335,41 +364,11 @@ async function getAgentStats(id) {
 async function getAgentProcesses(id) {
   if (useMock) return { data: mock.getAgentProcesses(id), source: 'mock' };
 
-  const agentRef = formatAgentId(id);
-  const raw = await wazuhRequest(`/syscollector/${agentRef}/processes`, {
-    limit: 10,
-    sort: '-cpu_usage_percent',
-  });
-
-  if (!raw?.affected_items) {
-    const fallback = await wazuhRequest(`/syscollector/${agentRef}/processes`, { limit: 10 });
-    if (!fallback?.affected_items) {
-      return { data: [], source: 'wazuh' };
-    }
-    const procs = fallback.affected_items
-      .map((p) => ({
-        pid: p.pid,
-        name: p.name,
-        cpu: p.cpu_usage_percent || p.cpu || 0,
-        memory: p.vm_size || p.rss || 0,
-        user: p.euser || p.user || 'unknown',
-      }))
-      .sort((a, b) => b.cpu - a.cpu)
-      .slice(0, 10);
-    return { data: procs, source: 'wazuh' };
-  }
-
-  const procs = raw.affected_items
-    .map((p) => ({
-      pid: p.pid,
-      name: p.name,
-      cpu: p.cpu_usage_percent || p.cpu || 0,
-      memory: p.vm_size || p.rss || 0,
-      user: p.euser || p.user || 'unknown',
-    }))
-    .slice(0, 10);
-
-  return { data: procs, source: 'wazuh' };
+  return {
+    data: [],
+    source: 'unavailable',
+    message: 'Syscollector processes not supported on Wazuh 4.7.5 — use Risorse live (Glances)',
+  };
 }
 
 async function getAlerts(filters = {}) {
@@ -424,26 +423,23 @@ async function getVulnerabilities(agentId) {
   if (indexer.isConfigured()) {
     const fromIndexer = await indexer.getVulnerabilities(agentId);
     if (fromIndexer?.length) {
-      return { data: fromIndexer, stats: computeVulnStats(fromIndexer), source: 'wazuh' };
+      return { data: fromIndexer, stats: computeVulnStats(fromIndexer), source: 'indexer' };
     }
   }
 
   const allVulns = [];
-  const agents = agentId
-    ? [{ id: String(agentId), name: `agent-${agentId}` }]
+  let agents = agentId
+    ? [{ id: formatAgentId(agentId), name: `agent-${agentId}` }]
     : await getActiveAgents();
 
-  for (const agent of agents) {
-    const raw = await wazuhRequest(`/vulnerability/${formatAgentId(agent.id)}`);
-    const items = raw?.affected_items || [];
-    if (!items.length) {
-      console.warn(`Wazuh API: [/vulnerability/${agent.id}] empty affected_items`);
-    }
-    items.forEach((v) => allVulns.push(normalizeVulnerability(v, agent.id, agent.name)));
+  if (agentId && isManagerAgentId(agentId)) {
+    agents = [];
   }
 
-  if (allVulns.length === 0 && agents.length === 0) {
-    return { data: mock.vulnerabilities, stats: mock.getVulnStats(), source: 'mock' };
+  for (const agent of agents) {
+    const agentRef = formatAgentId(agent.id);
+    const items = await fetchAgentVulnerabilitiesFromApi(agentRef);
+    items.forEach((v) => allVulns.push(normalizeVulnerability(v, agentRef, agent.name)));
   }
 
   return { data: allVulns, stats: computeVulnStats(allVulns), source: 'wazuh' };

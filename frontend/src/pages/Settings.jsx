@@ -86,7 +86,7 @@ export default function Settings() {
           />
         </label>
         <label className="block mt-3">
-          <span className="text-secondary text-xs">Netdata / metriche live agente (ms)</span>
+          <span className="text-secondary text-xs">Glances / metriche live agente (ms)</span>
           <input
             type="number"
             className="input w-full mt-1"

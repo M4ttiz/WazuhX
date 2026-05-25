@@ -457,10 +457,10 @@ function getMetrics(agentId) {
       uptimeSeconds: a.uptime,
       loadAverage: [1.2, 0.9, 0.7],
       scanTime: new Date().toISOString(),
-      source: 'netdata',
+      source: 'glances',
       reachable: true,
-      diskMetric: 'io',
-      diskUnit: 'KiB/s',
+      diskMetric: 'percent',
+      diskUnit: '%',
       series: {
         cpu: [{ time: Date.now() / 1000, value: a.cpuUsage }],
         ram: [{ time: Date.now() / 1000, value: a.ramUsage }],
@@ -488,9 +488,9 @@ function getMetrics(agentId) {
       totalAgents: agentMetrics.length,
       agentsOverThreshold: agentMetrics.filter((m) => m.thresholdAlerts.length > 0).length,
       lastPollAt: new Date().toISOString(),
-      netdataUnreachable: false,
+      glancesUnreachable: false,
     },
-    source: 'netdata',
+      source: 'glances',
   };
 }
 
@@ -511,13 +511,13 @@ function getRealtimeMetrics(agentId) {
     hostIp: agent.ip,
     cpu: Math.min(100, Math.max(0, agent.cpuUsage + jitter())),
     ram: Math.min(100, Math.max(0, agent.ramUsage + jitter())),
-    disk: Math.max(0, 1200 + ioJitter()),
-    diskUnit: 'KiB/s',
-    diskMetric: 'io',
+    disk: Math.min(100, Math.max(0, (agent.disks?.[0]?.used ?? 50) + jitter())),
+    diskUnit: '%',
+    diskMetric: 'percent',
     timestamp: Date.now(),
     reachable: true,
     partial: false,
-    source: 'netdata',
+      source: 'glances',
   };
 }
 

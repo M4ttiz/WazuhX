@@ -16,12 +16,16 @@ const aiRouter = require('./routes/ai');
 const reportsRouter = require('./routes/reports');
 const metricsRouter = require('./routes/metrics');
 
+const debugRouter = require('./routes/debug');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 if (process.env.USE_MOCK === 'true') {
   wazuh.forceMock(true);
 }
+
+app.set('trust proxy', 1);
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
@@ -62,6 +66,7 @@ app.use('/api/compliance', complianceRouter);
 app.use('/api/overview', overviewRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/debug', debugRouter);
 
 app.use((err, req, res, _next) => {
   console.error(err.message);

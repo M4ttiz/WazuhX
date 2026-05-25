@@ -175,30 +175,23 @@ function metricsToLegacyStats(metrics) {
   };
 }
 
-function normalizeNetdataAgentMetrics(agentMeta, hostIp, realtime, chartBundle) {
-  const reachable = Boolean(realtime?.reachable && !realtime?.error);
-  const cpu = realtime?.cpu ?? null;
-  const ram = realtime?.ram ?? null;
-  const diskIo = realtime?.disk ?? null;
+function normalizeGlancesAgentMetrics(agentMeta, hostIp, glancesMetrics, historyBundle) {
+  const reachable = Boolean(glancesMetrics?.reachable);
+  const cpu = glancesMetrics?.cpu?.percent ?? null;
+  const ram = glancesMetrics?.ram?.percent ?? null;
+  const disk = glancesMetrics?.disk?.percent ?? null;
+  const load = glancesMetrics?.load;
+  const loadAverage = load != null ? [load, load, load] : [0, 0, 0];
 
-  const loadPoints = chartBundle?.series?.load || [];
-  const lastLoad = loadPoints.length ? loadPoints[loadPoints.length - 1]?.value : null;
-  const loadAverage = lastLoad != null ? [lastLoad, lastLoad, lastLoad] : [0, 0, 0];
-
-  const cpuPoints = chartBundle?.series?.cpu || [];
-  const ramPoints = chartBundle?.series?.ram || [];
-  const history = cpuPoints.map((p, i) => ({
-    t:
-      typeof p.time === 'number'
-        ? new Date(p.time * 1000).toISOString()
-        : String(p.time ?? new Date().toISOString()),
-    cpu: p.value ?? 0,
-    ram: ramPoints[i]?.value ?? ram ?? 0,
-    diskMax: diskIo ?? 0,
+  const history = (historyBundle?.history || []).map((p) => ({
+    t: String(p.t ?? new Date().toISOString()),
+    cpu: p.cpu ?? cpu ?? 0,
+    ram: p.ram ?? ram ?? 0,
+    diskMax: disk ?? 0,
   }));
 
-  const netPoints = chartBundle?.series?.net || [];
-  const lastNet = netPoints.length ? netPoints[netPoints.length - 1]?.value : null;
+  const recv = glancesMetrics?.network?.recvKbps;
+  const sent = glancesMetrics?.network?.sentKbps;
 
   return {
     agentId: String(agentMeta.id),
@@ -206,20 +199,25 @@ function normalizeNetdataAgentMetrics(agentMeta, hostIp, realtime, chartBundle) 
     hostIp: hostIp || 'unknown',
     cpuPercent: cpu != null ? Math.min(100, Math.max(0, cpu)) : 0,
     ramPercent: ram != null ? Math.min(100, Math.max(0, ram)) : 0,
-    maxDiskPercent: diskIo != null ? diskIo : 0,
-    disks: [],
+    maxDiskPercent: disk != null ? disk : 0,
+    disks: disk != null
+      ? [{ mount: glancesMetrics?.disk?.mount || '/', usedPercent: disk, totalGb: 0 }]
+      : [],
     uptimeSeconds: 0,
     loadAverage,
-    scanTime: new Date().toISOString(),
-    source: 'netdata',
-    network: { rx: 0, tx: 0 },
-    netTraffic: lastNet,
-    diskIo,
-    diskUnit: realtime?.diskUnit || 'KiB/s',
-    diskMetric: 'io',
+    scanTime: glancesMetrics?.timestamp || new Date().toISOString(),
+    source: 'glances',
+    network: {
+      rx: recv != null ? recv * 1000 : 0,
+      tx: sent != null ? sent * 1000 : 0,
+    },
+    netTraffic: recv != null && sent != null ? recv + sent : null,
+    diskIo: null,
+    diskUnit: '%',
+    diskMetric: 'percent',
     reachable,
-    error: reachable ? undefined : chartBundle?.error || realtime?.error || 'Netdata unreachable',
-    series: chartBundle?.series || {},
+    error: reachable ? undefined : 'Glances unreachable',
+    series: historyBundle?.series || {},
     history,
   };
 }
@@ -235,7 +233,7 @@ function appendHistory(historyStore, agentId, point, maxPoints = 20) {
 module.exports = {
   getThresholds,
   normalizeAgentMetrics,
-  normalizeNetdataAgentMetrics,
+  normalizeGlancesAgentMetrics,
   evaluateThresholds,
   metricsToLegacyStats,
   appendHistory,

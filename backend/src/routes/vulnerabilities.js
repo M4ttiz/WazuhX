@@ -1,15 +1,16 @@
 const express = require('express');
 const wazuh = require('../services/wazuhClient');
 const { sendData } = require('../utils/response');
-const { withCache, getCacheKey, liveTtl } = require('../middleware/cache');
+const { withCache, getCacheKey } = require('../middleware/cache');
 
 const router = express.Router();
+const vulnTtl = 3600;
 
 router.get('/summary', async (req, res, next) => {
   try {
     const agentId = req.query.agentId;
     const key = getCacheKey('vulnerabilities-summary', { agentId: agentId || '' });
-    const result = await withCache(req, res, key, liveTtl, async () => {
+    const result = await withCache(req, res, key, vulnTtl, async () => {
       const vulnResult = await wazuh.getVulnerabilities(agentId);
       const vulns = vulnResult?.data || [];
       const byAgent = {};
@@ -42,7 +43,7 @@ router.get('/', async (req, res, next) => {
   try {
     const agentId = req.query.agentId;
     const key = getCacheKey('vulnerabilities', { agentId: agentId || '' });
-    const result = await withCache(req, res, key, liveTtl, () =>
+    const result = await withCache(req, res, key, vulnTtl, () =>
       wazuh.getVulnerabilities(agentId)
     );
     sendData(res, result);

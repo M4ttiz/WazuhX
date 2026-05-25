@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Server } from 'lucide-react';
 import { useWazuh } from '../hooks/useWazuh';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import AgentCard from '../components/AgentCard';
 import PageHeader from '../components/PageHeader';
 import GrafanaPanel from '../components/GrafanaPanel';
@@ -8,7 +9,9 @@ import EmptyState from '../components/EmptyState';
 
 export default function Agents() {
   const [filters, setFilters] = useState({ status: '', os: '', group: '', search: '' });
-  const { data: agents, loading, error } = useWazuh('/agents', { params: filters });
+  const debouncedSearch = useDebouncedValue(filters.search, 300);
+  const queryParams = { ...filters, search: debouncedSearch };
+  const { data: agents, loading, error } = useWazuh('/agents', { params: queryParams });
 
   const list = Array.isArray(agents) ? agents : [];
 

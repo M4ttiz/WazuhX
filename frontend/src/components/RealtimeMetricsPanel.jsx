@@ -19,11 +19,11 @@ const MAX_POINTS = 20;
 
 function sourceLabel(source, partial) {
   if (source === 'mock') return 'Mock';
-  return partial ? 'Netdata (parziale)' : 'Netdata';
+  return partial ? 'Glances (parziale)' : 'Glances';
 }
 
-const NETDATA_ERROR_BANNER =
-  'Netdata not reachable — check that Netdata is running on the target host (port 19999)';
+const GLANCES_ERROR_BANNER =
+  'Glances non raggiungibile — verifica che Glances sia in esecuzione sull\'host (porta 61208)';
 
 export default function RealtimeMetricsPanel({ agentId, enabled }) {
   const interval = getRefreshInterval('realtime', 2500);
@@ -75,7 +75,7 @@ export default function RealtimeMetricsPanel({ agentId, enabled }) {
 
   if (!data) return null;
 
-  const port = 19999;
+  const port = 61208;
   const diskUnit = data.diskUnit || (diskIo ? 'KiB/s' : '%');
   const diskLabel = diskIo ? 'Disk I/O' : 'Disco (uso %)';
 
@@ -97,7 +97,7 @@ export default function RealtimeMetricsPanel({ agentId, enabled }) {
 
       {!data.reachable && (
         <div className="p-3 rounded-md bg-red-500/10 border border-red-500/30">
-          <p className="text-sm text-red-400">{NETDATA_ERROR_BANNER}</p>
+          <p className="text-sm text-red-400">{GLANCES_ERROR_BANNER}</p>
           <p className="text-xs text-muted mt-1 font-mono">
             {data.hostIp}:{port}
             {data.error && ` · ${data.error}`}
