@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>Alternative Dashboard for Wazuh &mdash; Powerful, Modern, Scalable</b>
+  <b>Alternative Dashboard for Wazuh · Professional, Modern, Scalable</b>
 </p>
 
 <p align="center">
@@ -16,24 +16,24 @@
 ---
 
 ## Overview
-WazuhX è una dashboard moderna alternativa per [Wazuh](https://wazuh.com), con un frontend React professionale e un backend Node.js. Offre una user experience ottimizzata, nuove funzionalità, gestione rule, viste avanzate e deployment via Docker.
+WazuhX is a modern, open-source alternative dashboard for [Wazuh](https://wazuh.com). It provides a professional frontend (React) and backend (Node.js), optimized for security monitoring, SIEM, and enterprise cybersecurity. Easily deployable with Docker.
 
 - **Backend:** Node.js/Express
 - **Frontend:** ReactJS
-- **Config via:** `.env`
-- **Deployment:** docker-compose
+- **Config:** `.env`
+- **Deployment:** Docker Compose
 
 ### Features
-- Dashboard alternativa per Wazuh
-- Gestione e visualizzazione regole
-- Plug and play via Docker
-- Responsive UI/UX moderna
-- Moduli aggiuntivi personalizzabili
-- Supporto multi-utente
-- Logging avanzato
-- Estendibile via API
+- Alternative dashboard for Wazuh
+- Rule management and alert visualization
+- Plug & play via Docker
+- Responsive modern UI/UX
+- Customizable modules
+- Multi-user support
+- Advanced logging
+- Extensible via API
 
-## Quick Start
+## Quickstart
 
 ```sh
 git clone https://github.com/M4ttiz/WazuhX.git
@@ -42,21 +42,32 @@ cp .env.example .env
 docker-compose up --build
 ```
 
-Apri il browser su [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000)
+
+## Architecture
+
+```
+          ┌─────────────┐           ┌──────────────┐
+          │  Frontend  │◀─────────▶│   Backend    │
+          │  ReactJS   │  REST API │   Node.js    │
+          └─────────────┘           └──────────────┘
+                 │                       │
+                 ▼                       ▼
+           Users (Browser)     Wazuh API, Indexer, Glances
+```
 
 ## Repository Structure
 
 ```
 WazuhX/
-│
-├── backend/        # API/logic Node.js backend
-├── frontend/       # ReactJS frontend
-├── prompts/        # Prompt markdown e config
-├── deploy/         # Docker setup & compose
-├── assets/         # Loghi, immagini, screenshot
-├── scripts/        # Script di utilità
-├── examples/       # Usage/demo code
-├── docs/           # Documentazione tecnica
+├── backend/        # Node.js API backend
+├── frontend/       # ReactJS frontend app
+├── prompts/        # Prompts & config
+├── deploy/         # Docker setups
+├── assets/         # Logos, images
+├── scripts/        # Utility scripts
+├── examples/       # Usage/demo
+├── docs/           # Documentation
 │
 ├── .env.example
 ├── .gitignore
@@ -70,22 +81,21 @@ WazuhX/
 └── .editorconfig
 ```
 
-## Developer Guide
+## Deploy
 
-- **Coding Style:** vedi `.editorconfig` e seguire best practice Javascript/React
-- **Scripts Utili:** vedi cartella `scripts/`
-- **Gestione promt/regole:** vedi `prompts/` e documentazione
+Use Docker Compose stack:
 
-### Contributing
-Contributi, bugfix e suggerimenti sono benvenuti! Leggi [CONTRIBUTING.md](CONTRIBUTING.md).
+```sh
+docker-compose up --build
+```
+
+## Contributing
+We welcome contributions, bug fixes, and suggestions. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
-Licensed under the [MIT License](LICENSE).
+MIT License - see [LICENSE](LICENSE)
 
 ---
 
-### Keywords
-Wazuh, Dashboard, Security, React, Node.js, SIEM, Log Management, Docker, Open-source, Alternative UI
-
-### Credits
-Wazuh is a trademark of its respective owners. WazuhX non è affiliato ufficialmente al progetto Wazuh.
+### SEO Keywords
+wazuh, siem, dashboard, security monitoring, open-source, cybersecurity, alternative dashboard, log analysis, react, nodejs
