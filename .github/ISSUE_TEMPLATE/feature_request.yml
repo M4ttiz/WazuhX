@@ -1,0 +1,74 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or improvement for WazuhX
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve WazuhX? We'd love to hear it!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: Is your feature request related to a problem? Describe it.
+      placeholder: "I'm frustrated when..."
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered any alternative solutions or workarounds?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - Dashboard / UI
+        - Alerts & Events
+        - Agent Management
+        - Vulnerability Management
+        - Compliance
+        - FIM (File Integrity Monitoring)
+        - AI Analyst
+        - Report Generator
+        - Metrics & Performance
+        - Docker / Deployment
+        - API / Backend
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (from your perspective)
+      options:
+        - Low — Nice to have
+        - Medium — Would improve my workflow
+        - High — Blocking my use case
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this feature has not been requested before
+          required: true
+        - label: I am willing to contribute a PR for this feature
+          required: false

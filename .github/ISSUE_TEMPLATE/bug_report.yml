@@ -1,0 +1,92 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in WazuhX
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in as many fields as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: "When I click on... the page shows..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Frontend (React UI)
+        - Backend (Node.js API)
+        - Docker / Deployment
+        - AI Analyst (Gemini)
+        - SSH Proxy
+        - Report Generator
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: wazuh-version
+    attributes:
+      label: Wazuh version
+      placeholder: "e.g. 4.9.2"
+
+  - type: input
+    id: wazuhx-version
+    attributes:
+      label: WazuhX version / commit
+      placeholder: "e.g. v1.0.0 or commit hash"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Paste any relevant logs, console errors, or attach screenshots.
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest version of WazuhX
+          required: false

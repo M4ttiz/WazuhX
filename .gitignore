@@ -1,26 +1,51 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
 dist/
 build/
+frontend/dist/
+
+# Environment — NEVER commit secrets
 .env
-.env.*
-.idea/
-.vscode/
-*.log
-debug.log*
-.DS_Store
-tmp/
+.env.local
+.env.*.local
+
+# Logs
 logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test coverage
 coverage/
-.sass-cache/
-yarn.lock
-npm-debug.log
-*.tgz
-*.swp
-*.swo
-*.bak
-*.tmp
-.history
+.nyc_output/
+
+# Puppeteer cache
+.cache/puppeteer/
+
 # Docker
-*.pid
-docker-volumes/
-backend_logs.txt
+*.env.docker
+
+# AI / Cursor IDE dev prompts — internal use only
+cursorules/
+prompts/
+prompt*.md

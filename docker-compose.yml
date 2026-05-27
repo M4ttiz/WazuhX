@@ -26,7 +26,7 @@ services:
   wazuhx-frontend:
     build:
       context: ./frontend
-      dockerfile: ../cursorules/Dockerfile.frontend
+      dockerfile: ../Dockerfile.frontend
     ports:
       - "3000:80"
     depends_on:
